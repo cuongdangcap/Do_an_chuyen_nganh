@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Mật khẩu và cấu hình nhạy cảm
+.env
+
+# Thư mục chứa dữ liệu Vector DB của AI
+chroma_db/
+
+# Môi trường ảo của Python
+venv/
+env/
