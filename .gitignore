@@ -226,3 +226,6 @@ chroma_db/
 # Môi trường ảo của Python
 venv/
 env/
+
+# Bỏ qua các file cơ sở dữ liệu SQLite
+*.db
