@@ -1,4 +1,9 @@
 from fastapi import FastAPI
+from . import models
+from .database import engine
+
+# Lệnh này sẽ tự động tạo file tuyensinh.db và các bảng nếu chưa có
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="API Cổng Thông Tin Tuyển Sinh",
