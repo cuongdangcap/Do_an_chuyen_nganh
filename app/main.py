@@ -12,6 +12,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
+# Mở cửa cho Frontend kết nối không bị chặn
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Cho phép mọi trang web gọi vào
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Hàm gọi Database cho mỗi lần request
 def get_db():
     db = SessionLocal()
@@ -54,3 +65,26 @@ def nop_ho_so(ho_so: schemas.HoSoNop, db: Session = Depends(get_db)):
     db.refresh(db_hoso)
     
     return {"message": "Nộp hồ sơ thành công!", "data": db_hoso}
+
+    # 3. API Lấy danh sách hồ sơ (Cho Cổng Admin)
+@app.get("/api/admin/ho-so")
+def lay_danh_sach_ho_so(db: Session = Depends(get_db)):
+    return db.query(models.HoSoHocSinh).all()
+
+# 4. API Cập nhật trạng thái hồ sơ (Cho Cổng Admin)
+@app.put("/api/admin/duyet-ho-so/{cccd}")
+def duyet_ho_so(cccd: str, trang_thai_moi: str, db: Session = Depends(get_db)):
+    ho_so = db.query(models.HoSoHocSinh).filter(models.HoSoHocSinh.cccd == cccd).first()
+    if not ho_so:
+        raise HTTPException(status_code=404, detail="Không tìm thấy hồ sơ")
+    
+    ho_so.trang_thai = trang_thai_moi
+    db.commit()
+    return {"message": f"Đã cập nhật trạng thái thành: {trang_thai_moi}"}
+
+# 5. API Ổ cắm Chatbot (Chờ Dev AI gắn code thật vào)
+@app.post("/api/chat")
+def chat_voi_ai(request: schemas.ChatRequest):
+    # Đây là code giả (mock). Trưởng nhóm làm sẵn ổ cắm, Dev AI sẽ tự thay ruột sau.
+    cau_tra_loi_gia = f"Trưởng nhóm làm ổ cắm. Bạn vừa hỏi: '{request.cau_hoi}'"
+    return {"cau_tra_loi": cau_tra_loi_gia}

@@ -13,3 +13,7 @@ class HoSoNop(BaseModel):
     ho_ten: str
     diem_thi: float
     nguyen_vong: str
+
+# Cấu trúc dữ liệu gửi câu hỏi cho Chatbot
+class ChatRequest(BaseModel):
+    cau_hoi: str
