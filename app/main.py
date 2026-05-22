@@ -88,3 +88,19 @@ def chat_voi_ai(request: schemas.ChatRequest):
     # Đây là code giả (mock). Trưởng nhóm làm sẵn ổ cắm, Dev AI sẽ tự thay ruột sau.
     cau_tra_loi_gia = f"Trưởng nhóm làm ổ cắm. Bạn vừa hỏi: '{request.cau_hoi}'"
     return {"cau_tra_loi": cau_tra_loi_gia}
+
+# 6. API Đăng nhập (Cho Cổng Admin)
+@app.post("/api/admin/login")
+def dang_nhap_admin(admin: schemas.AdminLogin):
+    # Cài đặt tài khoản mặc định cho đồ án
+    TAI_KHOAN_CHUAN = "admin"
+    MAT_KHAU_CHUAN = "123456"
+    
+    if admin.tai_khoan == TAI_KHOAN_CHUAN and admin.mat_khau == MAT_KHAU_CHUAN:
+        return {
+            "message": "Đăng nhập thành công!", 
+            "token": "day_la_token_gia_lap_cho_admin",
+            "quyen": "quantri"
+        }
+    else:
+        raise HTTPException(status_code=401, detail="Sai tài khoản hoặc mật khẩu!")

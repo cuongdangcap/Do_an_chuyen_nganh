@@ -17,3 +17,8 @@ class HoSoNop(BaseModel):
 # Cấu trúc dữ liệu gửi câu hỏi cho Chatbot
 class ChatRequest(BaseModel):
     cau_hoi: str
+
+# Cấu trúc dữ liệu Đăng nhập Admin
+class AdminLogin(BaseModel):
+    tai_khoan: str
+    mat_khau: str
