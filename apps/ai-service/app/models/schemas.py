@@ -1,3 +1,5 @@
+import os
+
 from pydantic import BaseModel, Field
 
 
@@ -21,5 +23,5 @@ class IngestionResponse(BaseModel):
     success: bool = True
     message: str = "OK"
     extracted_text: str
-    vector_collection: str = "admissions_docs"
+    vector_collection: str = os.getenv("QDRANT_COLLECTION", "admissions_docs")
     chunks: list[IngestionChunk]

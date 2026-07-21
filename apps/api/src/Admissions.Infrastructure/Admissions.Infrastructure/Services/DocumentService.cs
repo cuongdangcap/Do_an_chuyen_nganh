@@ -316,6 +316,11 @@ public sealed class DocumentService(
 
 public sealed class DocumentIngestionClient(HttpClient httpClient)
 {
+    private static readonly string VectorCollection =
+        Environment.GetEnvironmentVariable("QDRANT_COLLECTION")?.Trim() is { Length: > 0 } configured
+            ? configured
+            : "admissions_docs";
+
     public async Task<AiHealthResponse?> GetHealthAsync(CancellationToken cancellationToken)
     {
         var response = await httpClient.GetAsync("/health", cancellationToken);
@@ -378,7 +383,7 @@ public sealed class DocumentIngestionClient(HttpClient httpClient)
     public async Task<AiUpsertResponse> UpsertAsync(IReadOnlyCollection<DocumentChunk> chunks, CancellationToken cancellationToken)
     {
         var request = new AiUpsertRequest(
-            "admissions_docs",
+            VectorCollection,
             chunks.Select(chunk => new AiUpsertChunk(
                 chunk.QdrantPointId ?? chunk.Id.ToString(),
                 chunk.Content,
@@ -398,7 +403,7 @@ public sealed class DocumentIngestionClient(HttpClient httpClient)
     {
         var response = await httpClient.PostAsJsonAsync(
             "/internal/rag/search",
-            new AiSearchRequest(query, Math.Clamp(topK, 1, 20), "admissions_docs"),
+            new AiSearchRequest(query, Math.Clamp(topK, 1, 20), VectorCollection),
             cancellationToken);
         var payload = await response.Content.ReadFromJsonAsync<AiSearchResponse>(cancellationToken: cancellationToken);
         if (!response.IsSuccessStatusCode || payload is null || !payload.Success)

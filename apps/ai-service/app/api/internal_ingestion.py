@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from app.ingestion.chunker import chunk_segments
 from app.ingestion.extractors import clean_text, extract_segments
 from app.models.schemas import IngestionResponse
+from app.rag.vector_store import DEFAULT_COLLECTION
 
 router = APIRouter(prefix="/internal/ingestion", tags=["internal-ingestion"])
 
@@ -44,6 +45,6 @@ async def process_document(
             success=True,
             message="Document parsed and chunked.",
             extracted_text=extracted_text,
-            vector_collection="admissions_docs",
+            vector_collection=DEFAULT_COLLECTION,
             chunks=chunks,
         )
