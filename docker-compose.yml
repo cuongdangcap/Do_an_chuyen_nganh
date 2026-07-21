@@ -33,6 +33,7 @@ services:
       Jwt__Audience: AdmissionsAiSystem.Web
       Jwt__Secret: "${JWT_SECRET}"
       AiService__BaseUrl: http://ai-service:8000
+      QDRANT_COLLECTION: "${QDRANT_COLLECTION:-admissions_docs}"
       Llm__Enabled: "${LLM_ENABLED}"
       Llm__BaseUrl: "${LLM_BASE_URL}"
       Llm__ApiKey: "${LLM_API_KEY}"
