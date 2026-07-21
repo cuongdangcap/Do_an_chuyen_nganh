@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ui:audit": "node scripts/ui-audit.mjs"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
