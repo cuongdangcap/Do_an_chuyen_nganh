@@ -35,7 +35,10 @@ jobs:
           cat /tmp/admissions-web-preview.log
           exit 1
       - name: Audit every UI tab on desktop and mobile
-        run: npm run ui:audit
+        run: |
+          mkdir -p ui-audit-artifacts
+          set -o pipefail
+          npm run ui:audit 2>&1 | tee ui-audit-artifacts/audit.log
       - name: Upload UI audit screenshots
         if: always()
         uses: actions/upload-artifact@v4
