@@ -42,14 +42,59 @@
   }
 }
 
+/* Replace inconsistent browser file controls with one Vietnamese action. */
+.chat-file-input,
+.document-upload label:has(input[type="file"]) {
+  position: relative;
+}
+
+.chat-file-input input[type="file"],
+.document-upload input[type="file"] {
+  position: absolute;
+  width: 1px;
+  min-height: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-file-input::after,
+.document-upload label:has(input[type="file"])::after {
+  content: "Chọn tệp";
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.chat-file-input:hover::after,
+.document-upload label:has(input[type="file"]):hover::after {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
 @media (max-width: 560px) {
-  .portal-service-nav,
-  .admin-tabs,
   .question-suggestions {
     grid-template-columns: 1fr;
   }
 
-  .portal-service-nav button {
+  .portal-service-nav,
+  .admin-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-service-nav button,
+  .admin-tabs button {
     min-height: 52px;
   }
 
@@ -145,5 +190,12 @@
   .user-table .row-actions button,
   .document-table .row-actions button {
     flex: 1 1 120px;
+  }
+}
+
+@media (max-width: 380px) {
+  .portal-service-nav,
+  .admin-tabs {
+    grid-template-columns: 1fr;
   }
 }
