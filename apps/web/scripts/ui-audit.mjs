@@ -156,7 +156,7 @@ async function auditViewport(browser, viewport, suffix) {
 
   await page.getByRole("button", { name: "Đăng nhập người học" }).click();
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-  await page.getByRole("button", { name: "Hồ sơ" }).click();
+  await page.getByRole("button", { name: "Hồ sơ", exact: true }).click();
   await assertLayout(page, `member-profile-${suffix}`);
   await shot(page, `member-profile-${suffix}`);
 
@@ -165,8 +165,8 @@ async function auditViewport(browser, viewport, suffix) {
     localStorage.removeItem("admissions_member_token");
   });
   await page.reload({ waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Cổng quản trị" }).click();
-  await page.getByRole("button", { name: "Vào cổng quản trị" }).click();
+  await page.getByRole("button", { name: "Cổng quản trị", exact: true }).click();
+  await page.getByRole("button", { name: "Vào cổng quản trị", exact: true }).click();
   for (const tab of ["Tổng quan", "Tài khoản", "RAG & hỗ trợ", "Đánh giá", "Dữ liệu tuyển sinh"]) {
     await page.getByRole("button", { name: tab, exact: true }).click();
     await page.waitForTimeout(120);
