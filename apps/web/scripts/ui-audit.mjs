@@ -97,7 +97,7 @@ async function assertLayout(page, label) {
       .filter(visible)
       .filter((el) => el.scrollWidth > el.clientWidth + 3 || el.scrollHeight > el.clientHeight + 3)
       .map((el) => el.textContent.trim().slice(0, 80));
-    const tinyTargets = [...document.querySelectorAll("button, input, select, textarea")]
+    const tinyTargets = [...document.querySelectorAll("button, input:not([type='checkbox']):not([type='radio']), select, textarea")]
       .filter(visible)
       .map((el) => ({ text: (el.textContent || el.getAttribute("aria-label") || el.name || el.type || "control").trim().slice(0, 60), rect: el.getBoundingClientRect() }))
       .filter(({ rect }) => rect.width < 32 || rect.height < 32)
@@ -106,12 +106,18 @@ async function assertLayout(page, label) {
       .filter(visible)
       .filter((el) => !getComputedStyle(el).fontFamily)
       .length;
-    return { overflow, clippedButtons, tinyTargets, invalidFonts };
+    const outsideViewport = [...document.querySelectorAll("button, input, select, textarea, h1, h2, h3")]
+      .filter(visible)
+      .map((el) => ({ text: (el.textContent || el.getAttribute("placeholder") || el.type || "element").trim().slice(0, 60), rect: el.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.left < -3 || rect.right > viewportWidth + 3)
+      .map(({ text, rect }) => `${text} [${Math.round(rect.left)}, ${Math.round(rect.right)}]`);
+    return { overflow, clippedButtons, tinyTargets, invalidFonts, outsideViewport };
   });
   if (result.overflow > 3) throw new Error(`${label}: horizontal overflow ${result.overflow}px`);
   if (result.clippedButtons.length) throw new Error(`${label}: clipped button text: ${result.clippedButtons.join(" | ")}`);
   if (result.tinyTargets.length) throw new Error(`${label}: controls below 32px: ${result.tinyTargets.join(" | ")}`);
   if (result.invalidFonts) throw new Error(`${label}: ${result.invalidFonts} elements have no computed font family`);
+  if (result.outsideViewport.length) throw new Error(`${label}: controls/text outside viewport: ${result.outsideViewport.join(" | ")}`);
 }
 
 async function shot(page, name) {
@@ -120,8 +126,7 @@ async function shot(page, name) {
 
 async function openPortal(page) {
   await page.goto(baseURL, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Hỏi AI ngay" }).click();
-  await page.getByRole("heading", { name: "Trợ lý AI" }).waitFor();
+  await page.getByRole("heading", { name: "Trợ lý AI", exact: true }).waitFor();
 }
 
 async function auditViewport(browser, viewport, suffix) {
@@ -130,20 +135,24 @@ async function auditViewport(browser, viewport, suffix) {
   await installMocks(page);
 
   await page.goto(baseURL, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Đăng nhập người học" }).click();
+  await page.getByRole("heading", { name: "Đăng nhập sinh viên" }).waitFor();
   await assertLayout(page, `login-student-${suffix}`);
   await shot(page, `login-student-${suffix}`);
   await page.getByRole("button", { name: "Phụ huynh" }).click();
   await assertLayout(page, `login-parent-${suffix}`);
+  await shot(page, `login-parent-${suffix}`);
   await page.getByRole("button", { name: "Cổng quản trị nhà trường" }).click();
   await assertLayout(page, `login-admin-${suffix}`);
+  await shot(page, `login-admin-${suffix}`);
 
   await openPortal(page);
   for (const tab of ["Trợ lý AI", "Ngành đào tạo", "So sánh", "FAQ"]) {
     await page.getByRole("button", { name: new RegExp(`^${tab}`) }).first().click();
     await page.waitForTimeout(100);
     await assertLayout(page, `portal-${tab}-${suffix}`);
+    await shot(page, `portal-${tab.toLowerCase().replaceAll(" ", "-")}-${suffix}`);
   }
-  await shot(page, `portal-faq-${suffix}`);
 
   await page.getByRole("button", { name: "Đăng nhập người học" }).click();
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
@@ -162,8 +171,8 @@ async function auditViewport(browser, viewport, suffix) {
     await page.getByRole("button", { name: tab, exact: true }).click();
     await page.waitForTimeout(120);
     await assertLayout(page, `admin-${tab}-${suffix}`);
+    await shot(page, `admin-${tab.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}-${suffix}`);
   }
-  await shot(page, `admin-admissions-${suffix}`);
   await context.close();
 }
 
