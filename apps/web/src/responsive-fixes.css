@@ -1,0 +1,75 @@
+/* Mobile layouts should expose every action without hidden horizontal scrolling. */
+@media (max-width: 820px) {
+  .portal-service-nav,
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .portal-service-nav button,
+  .admin-tabs button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .portal-service-nav button.active,
+  .admin-tabs button.active {
+    box-shadow: inset 4px 0 0 var(--primary);
+  }
+
+  .question-suggestions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .question-suggestions button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .chat-history-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .chat-history-list button {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .portal-service-nav,
+  .admin-tabs,
+  .question-suggestions {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-service-nav button {
+    min-height: 52px;
+  }
+
+  .question-suggestions {
+    flex-wrap: wrap;
+    padding-bottom: 0;
+  }
+
+  .question-suggestions button {
+    min-width: 0;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .topbar-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+}
