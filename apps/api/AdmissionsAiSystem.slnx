@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Admissions.Api/">
+    <Project Path="src/Admissions.Api/Admissions.Api/Admissions.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Admissions.Application/">
+    <Project Path="src/Admissions.Application/Admissions.Application/Admissions.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Admissions.Domain/">
+    <Project Path="src/Admissions.Domain/Admissions.Domain/Admissions.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Admissions.Infrastructure/">
+    <Project Path="src/Admissions.Infrastructure/Admissions.Infrastructure/Admissions.Infrastructure.csproj" />
+  </Folder>
+</Solution>

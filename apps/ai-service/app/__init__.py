@@ -1,0 +1,1 @@
+"""Admissions AI service package."""

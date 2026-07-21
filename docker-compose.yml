@@ -1,0 +1,74 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: admissions-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      SA_PASSWORD: "${SQLSERVER_SA_PASSWORD}"
+    ports:
+      - "${SQLSERVER_PORT}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: admissions-qdrant
+    ports:
+      - "${QDRANT_HTTP_PORT}:6333"
+      - "${QDRANT_GRPC_PORT}:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: admissions-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "${API_CONNECTION_STRING}"
+      Jwt__Issuer: AdmissionsAiSystem
+      Jwt__Audience: AdmissionsAiSystem.Web
+      Jwt__Secret: "${JWT_SECRET}"
+      AiService__BaseUrl: http://ai-service:8000
+      Llm__Enabled: "${LLM_ENABLED}"
+      Llm__BaseUrl: "${LLM_BASE_URL}"
+      Llm__ApiKey: "${LLM_API_KEY}"
+      Llm__Model: "${LLM_MODEL}"
+      Llm__TimeoutSeconds: "${LLM_TIMEOUT_SECONDS}"
+    ports:
+      - "${API_PORT}:8080"
+    depends_on:
+      - sqlserver
+      - ai-service
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: infra/docker/ai-service.Dockerfile
+    container_name: admissions-ai-service
+    environment:
+      QDRANT_URL: "${QDRANT_URL}"
+      LOCAL_VECTOR_STORE: "${LOCAL_VECTOR_STORE}"
+      TESSERACT_CMD: "${TESSERACT_CMD}"
+      TESSDATA_DIR: "${TESSDATA_DIR}"
+    ports:
+      - "${AI_SERVICE_PORT}:8000"
+    depends_on:
+      - qdrant
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    container_name: admissions-web
+    ports:
+      - "${WEB_PORT}:5173"
+    depends_on:
+      - api
+
+volumes:
+  sqlserver-data:
+  qdrant-data:
