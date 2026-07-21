@@ -21,6 +21,28 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - run: npm run build
+      - name: Install Chromium for UI audit
+        run: npx playwright install --with-deps chromium
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/admissions-web-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/admissions-web-preview.log
+          exit 1
+      - name: Audit every UI tab on desktop and mobile
+        run: npm run ui:audit
+      - name: Upload UI audit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-audit-screenshots
+          path: apps/web/ui-audit-artifacts
+          if-no-files-found: warn
 
   ai-service:
     runs-on: ubuntu-latest
