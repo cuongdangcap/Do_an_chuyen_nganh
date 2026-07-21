@@ -51,7 +51,13 @@ services:
     container_name: admissions-ai-service
     environment:
       QDRANT_URL: "${QDRANT_URL}"
+      QDRANT_COLLECTION: "${QDRANT_COLLECTION:-admissions_docs}"
+      QDRANT_TIMEOUT_SECONDS: "${QDRANT_TIMEOUT_SECONDS:-8}"
+      QDRANT_SCORE_THRESHOLD: "${QDRANT_SCORE_THRESHOLD:-0.20}"
       LOCAL_VECTOR_STORE: "${LOCAL_VECTOR_STORE}"
+      EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER:-auto}"
+      EMBEDDING_MODEL: "${EMBEDDING_MODEL:-intfloat/multilingual-e5-small}"
+      EMBEDDING_DIMENSION: "${EMBEDDING_DIMENSION:-384}"
       TESSERACT_CMD: "${TESSERACT_CMD}"
       TESSDATA_DIR: "${TESSDATA_DIR}"
     ports:
