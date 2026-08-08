@@ -81,14 +81,14 @@ function App() {
   const [comparison, setComparison] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("admissions_token") ?? "");
   const [adminUser, setAdminUser] = useState(null);
-  const [login, setLogin] = useState({ email: "admin@example.com", password: "Admin123456!" });
+  const [login, setLogin] = useState({ email: "admin@example.com", password: "" });
   const [memberToken, setMemberToken] = useState(() => localStorage.getItem("admissions_member_token") ?? "");
   const [memberUser, setMemberUser] = useState(null);
   const [memberMode, setMemberMode] = useState("student");
   const [memberAuthMode, setMemberAuthMode] = useState("login");
   const [memberForm, setMemberForm] = useState({
     email: "BIT240048@st.cmcu.edu.vn",
-    password: "Student123456!",
+    password: "",
     fullName: "Nguyễn Thu Hà",
     phone: "0900000000",
   });
@@ -126,6 +126,8 @@ function App() {
   const [clientSessionId] = useState(() => getClientSessionId());
   const [chatConversations, setChatConversations] = useState({ items: [], totalItems: 0 });
   const [activeConversationId, setActiveConversationId] = useState("");
+  const activeConversationIdRef = useRef("");
+  const shouldRestoreConversationRef = useRef(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [ragQuestion, setRagQuestion] = useState("");
   const [ragFile, setRagFile] = useState(null);
@@ -196,7 +198,9 @@ function App() {
   }, [memberToken]);
 
   useEffect(() => {
+    activeConversationIdRef.current = "";
     setActiveConversationId("");
+    shouldRestoreConversationRef.current = true;
     setChatMessages([]);
     setRagChat(null);
     refreshChatConversations();
@@ -474,7 +478,7 @@ function App() {
       setMemberForm((current) => ({
         ...current,
         email: role === "student" ? "BIT240048@st.cmcu.edu.vn" : "phuhuynh@example.com",
-        password: role === "student" ? "Student123456!" : current.password,
+        password: "",
       }));
     }
     setView("login");
@@ -592,6 +596,13 @@ function App() {
       token: activeToken || undefined,
     });
     setChatConversations(result);
+
+    if (shouldRestoreConversationRef.current && !activeConversationIdRef.current && result.items?.length) {
+      shouldRestoreConversationRef.current = false;
+      const savedId = localStorage.getItem(`admissions_active_conversation_${clientSessionId}`);
+      const conversation = result.items.find((item) => item.id === savedId) ?? result.items[0];
+      await loadChatConversation(conversation.id, activeToken);
+    }
   }
 
   async function loadChatConversation(id, activeToken = getChatAccessToken()) {
@@ -599,13 +610,27 @@ function App() {
     const result = await api(`/api/chat/conversations/${id}?clientSessionId=${encodeURIComponent(clientSessionId)}`, {
       token: activeToken || undefined,
     });
-    setActiveConversationId(result.id);
+    rememberActiveConversation(result.id);
+    shouldRestoreConversationRef.current = false;
     setChatMessages(result.messages);
     setRagChat(null);
   }
 
+  function rememberActiveConversation(id) {
+    const nextId = id || "";
+    activeConversationIdRef.current = nextId;
+    setActiveConversationId(nextId);
+    const storageKey = `admissions_active_conversation_${clientSessionId}`;
+    if (nextId) {
+      localStorage.setItem(storageKey, nextId);
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }
+
   function startNewChat() {
-    setActiveConversationId("");
+    shouldRestoreConversationRef.current = false;
+    rememberActiveConversation("");
     setChatMessages([]);
     setRagChat(null);
     setRagQuestion("");
@@ -658,6 +683,7 @@ function App() {
     setRagLoading(true);
     setRagChat(null);
     const chatAccessToken = getChatAccessToken();
+    const conversationId = activeConversationIdRef.current;
     const pendingUserMessage = { id: `pending-${Date.now()}`, role: "user", content: question, sources: [] };
     setChatMessages((current) => [...current, pendingUserMessage]);
     try {
@@ -665,14 +691,14 @@ function App() {
         const form = new FormData();
         form.append("question", question);
         form.append("clientSessionId", clientSessionId);
-        if (activeConversationId) form.append("conversationId", activeConversationId);
+        if (conversationId) form.append("conversationId", conversationId);
         form.append("file", ragFile);
         const detail = await api("/api/chat/conversations/file-question", {
           method: "POST",
           token: chatAccessToken || undefined,
           body: form,
         });
-        setActiveConversationId(detail.id);
+        rememberActiveConversation(detail.id);
         setChatMessages(detail.messages);
         setRagFile(null);
         setRagQuestion("");
@@ -687,12 +713,12 @@ function App() {
         body: JSON.stringify({
           question,
           topK: 5,
-          conversationId: activeConversationId || null,
+          conversationId: conversationId || null,
           clientSessionId,
         }),
       });
       setRagChat(result);
-      setActiveConversationId(result.conversationId ?? "");
+      rememberActiveConversation(result.conversationId ?? "");
       if (result.conversationId) {
         const detail = await api(`/api/chat/conversations/${result.conversationId}?clientSessionId=${encodeURIComponent(clientSessionId)}`, {
           token: chatAccessToken || undefined,
@@ -966,7 +992,7 @@ function AuthLanding({
       setMemberForm((current) => ({
         ...current,
         email: nextRole === "student" ? "BIT240048@st.cmcu.edu.vn" : "phuhuynh@example.com",
-        password: nextRole === "student" ? "Student123456!" : current.password,
+        password: "",
       }));
     }
   }
@@ -1052,9 +1078,12 @@ function Header({ view, setView, status, adminUser, memberUser, onOpenAuth, onLo
 
   return (
     <header className="topbar">
-      <div>
-        <p className="eyebrow">Trường Đại học CMC</p>
-        <h1>{isAdmin ? "Cổng quản trị tuyển sinh" : isMember ? "Hồ sơ tài khoản" : "Trợ lý tuyển sinh Đại học CMC"}</h1>
+      <div className="topbar-brand">
+        <span className="brand-mark" aria-hidden="true">C</span>
+        <div>
+          <p className="eyebrow">Trường Đại học CMC</p>
+          <h1>{isAdmin ? "Cổng quản trị tuyển sinh" : isMember ? "Hồ sơ tài khoản" : "Trợ lý tuyển sinh Đại học CMC"}</h1>
+        </div>
       </div>
       <div className="topbar-actions">
         {isPortal && !memberUser ? (
@@ -1129,7 +1158,7 @@ function PortalView({
     <div className="portal-shell">
       <aside className="portal-rail">
         <div className="portal-rail-head">
-          <p className="eyebrow">CMCU Portal</p>
+          <div className="rail-brand"><span className="brand-mark small" aria-hidden="true">C</span><p className="eyebrow">CMCU Portal</p></div>
           <h2>{memberUser ? "Không gian tư vấn của bạn" : "Cổng tư vấn tuyển sinh"}</h2>
           <p>{memberUser ? `${memberUser.fullName} đang đăng nhập.` : "Hỏi AI trước, tra cứu chi tiết khi cần."}</p>
         </div>
@@ -1548,6 +1577,9 @@ function RagChatPanel({
   const displayMessages = loading
     ? [...visibleMessages, { id: "thinking", role: "assistant", content: "Đang tìm nguồn phù hợp và tạo câu trả lời...", sources: [] }]
     : visibleMessages;
+  const latestSources = [...visibleMessages]
+    .reverse()
+    .find((message) => message.role === "assistant" && message.sources?.length)?.sources ?? chat?.sources ?? [];
   const feedbackLocked = Boolean(chat?.feedbackSubmitted);
 
   useEffect(() => {
@@ -1579,8 +1611,8 @@ function RagChatPanel({
     <section className="rag-chat-panel">
       <div className="section-title">
         <div>
-          <h2>Trợ lý RAG tuyển sinh CMCU</h2>
-          <p>Trả lời dựa trên PDF, DOCX, ảnh và tài liệu tuyển sinh Đại học CMC đã nạp trong kho quản trị.</p>
+          <h2>Xin chào, mình có thể giúp gì cho bạn?</h2>
+          <p>Hỏi về ngành học, học phí, phương thức xét tuyển hoặc hồ sơ tại Đại học CMC.</p>
         </div>
         {chat?.backend ? <span className="pill">{chat.backend}</span> : null}
       </div>
@@ -1629,27 +1661,6 @@ function RagChatPanel({
                 <article key={message.id} className={`chat-message ${message.role}`}>
                   <strong>{message.role === "user" ? "Bạn" : "Trợ lý"}</strong>
                   <p>{message.content}</p>
-                  {message.role === "assistant" && message.sources?.length ? (
-                    <div className="source-list compact">
-                      <div className="source-list-title">Nguồn tham khảo</div>
-                      {message.sources.slice(0, 3).map((source) => (
-                        <article key={source.id ?? source.pointId}>
-                          <strong>{source.title || "Tài liệu"}</strong>
-                          <span>
-                            Điểm: {Number(source.score).toFixed(3)}
-                            {source.pageNumber ? ` - Trang ${source.pageNumber}` : ""}
-                          </span>
-                          {source.sectionTitle ? <small>{source.sectionTitle}</small> : null}
-                          {source.content ? (
-                            <details>
-                              <summary>Xem trích đoạn kiểm chứng</summary>
-                              <p>{cleanSourceExcerpt(source.content)}</p>
-                            </details>
-                          ) : null}
-                        </article>
-                      ))}
-                    </div>
-                  ) : null}
                 </article>
               ))
             ) : (
@@ -1735,6 +1746,38 @@ function RagChatPanel({
             <p className="handoff-notice">Câu hỏi đã được chuyển cho tư vấn viên. Mã phiếu: {chat.handoffTicketId.slice(0, 8)}</p>
           ) : null}
         </div>
+
+        <aside className="chat-sources" aria-label="Nguồn tham khảo">
+          <div className="chat-sources-head">
+            <div>
+              <span className="source-kicker">Kiểm chứng</span>
+              <h3>Nguồn tham khảo</h3>
+            </div>
+            <span className="source-count">{latestSources.length}</span>
+          </div>
+          <p className="chat-sources-intro">Các tài liệu được dùng cho câu trả lời gần nhất.</p>
+          <div className="source-list">
+            {latestSources.length ? latestSources.slice(0, 5).map((source, index) => (
+              <article key={source.id ?? source.pointId ?? index}>
+                <div className="source-index">{String(index + 1).padStart(2, "0")}</div>
+                <div>
+                  <strong>{source.title || "Tài liệu tuyển sinh"}</strong>
+                  <span>
+                    {source.pageNumber ? `Trang ${source.pageNumber}` : "Tài liệu nội bộ"}
+                    {source.score != null && Number.isFinite(Number(source.score)) ? ` · Điểm ${Number(source.score).toFixed(3)}` : ""}
+                  </span>
+                  {source.sectionTitle ? <small>{source.sectionTitle}</small> : null}
+                  {source.content ? (
+                    <details>
+                      <summary>Xem trích đoạn</summary>
+                      <p>{cleanSourceExcerpt(source.content)}</p>
+                    </details>
+                  ) : null}
+                </div>
+              </article>
+            )) : <EmptyState text="Nguồn sẽ xuất hiện sau khi trợ lý trả lời." />}
+          </div>
+        </aside>
       </div>
     </section>
   );
@@ -1791,12 +1834,13 @@ function AdminView({
 }) {
   const [adminTab, setAdminTab] = useState("overview");
   const adminTabs = [
-    ["overview", "Tổng quan"],
-    ["accounts", "Tài khoản"],
-    ["rag", "RAG & hỗ trợ"],
-    ["evaluation", "Đánh giá"],
-    ["admissions", "Dữ liệu tuyển sinh"],
+    ["overview", "Tổng quan", "Tình hình hệ thống"],
+    ["accounts", "Tài khoản", "Người dùng & phân quyền"],
+    ["rag", "RAG & hỗ trợ", "Tài liệu & tư vấn"],
+    ["evaluation", "Đánh giá", "Chất lượng truy xuất"],
+    ["admissions", "Dữ liệu tuyển sinh", "Thông tin đào tạo"],
   ];
+  const activeAdminTab = adminTabs.find(([id]) => id === adminTab) ?? adminTabs[0];
 
   if (!token || !adminUser) {
     return (
@@ -1826,12 +1870,25 @@ function AdminView({
   return (
     <div className="admin-shell">
       <nav className="admin-tabs" aria-label="Khu vực quản trị">
-        {adminTabs.map(([id, label]) => (
-          <button key={id} className={adminTab === id ? "active" : ""} type="button" onClick={() => setAdminTab(id)}>
-            {label}
+        <div className="admin-nav-brand">
+          <span className="brand-mark" aria-hidden="true">C</span>
+          <div><strong>CMC Admin</strong><small>Tuyển sinh 2026</small></div>
+        </div>
+        <span className="admin-nav-label">Không gian quản trị</span>
+        {adminTabs.map(([id, label, description], index) => (
+          <button key={id} aria-label={label} className={adminTab === id ? "active" : ""} type="button" onClick={() => setAdminTab(id)}>
+            <span className="admin-tab-index">{String(index + 1).padStart(2, "0")}</span>
+            <span><strong>{label}</strong><small>{description}</small></span>
           </button>
         ))}
+        <div className="admin-nav-footer"><span className="status-dot" />Hệ thống đang hoạt động</div>
       </nav>
+
+      <section className="admin-content">
+        <header className="admin-page-header">
+          <div><p className="eyebrow">Quản trị tuyển sinh</p><h2>{activeAdminTab[1]}</h2><p>{activeAdminTab[2]}</p></div>
+          <span className="admin-date">Năm tuyển sinh 2026</span>
+        </header>
 
       {adminTab === "overview" ? (
         <div className="admin-grid">
@@ -1984,6 +2041,7 @@ function AdminView({
       </AdminForm>
         </div>
       ) : null}
+      </section>
     </div>
   );
 }

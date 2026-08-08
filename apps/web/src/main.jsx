@@ -5,6 +5,7 @@ import "./styles.css";
 import "./ux.css";
 import "./login.css";
 import "./responsive-fixes.css";
+import "./redesign.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

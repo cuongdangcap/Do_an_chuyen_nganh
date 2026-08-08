@@ -54,8 +54,8 @@ function responseFor(url, method) {
   if (pathname === "/api/admissions/faqs") return json([{ id: "faq-1", question: "Hồ sơ xét tuyển gồm những gì?", answer: "Thí sinh chuẩn bị thông tin cá nhân và minh chứng theo thông báo tuyển sinh." }]);
   if (pathname === "/api/admissions/compare-programs") return json({ summary: "So sánh 1 chương trình mẫu", items: [major.programs[0]] });
   if (pathname === "/api/chat/conversations") return json({ items: [{ id: "conv-1", title: "Học phí ngành CNTT", lastMessagePreview: "Học phí năm 2026" }], totalItems: 1 });
-  if (pathname === "/api/chat/conversations/conv-1") return json({ id: "conv-1", messages: [{ id: "m1", role: "user", content: "Học phí ngành CNTT?" }, { id: "m2", role: "assistant", content: "Học phí dự kiến từ 30 đến 36 triệu đồng mỗi năm.", sources: [] }] });
-  if (pathname === "/api/rag/chat") return json({ conversationId: "conv-1", assistantMessageId: "m2", answer: "Học phí dự kiến từ 30 đến 36 triệu đồng mỗi năm.", backend: "qdrant", sources: [] });
+  if (pathname === "/api/chat/conversations/conv-1") return json({ id: "conv-1", messages: [{ id: "m1", role: "user", content: "Học phí ngành CNTT?" }, { id: "m2", role: "assistant", content: "Học phí dự kiến từ 30 đến 36 triệu đồng mỗi năm.", sources: [{ id: "s1", title: "Thông tin tuyển sinh 2026", pageNumber: 12, sectionTitle: "Học phí", score: 0.92, content: "Học phí chương trình Công nghệ thông tin dự kiến từ 30 đến 36 triệu đồng mỗi năm." }] }] });
+  if (pathname === "/api/rag/chat") return json({ conversationId: "conv-1", assistantMessageId: "m2", answer: "Học phí dự kiến từ 30 đến 36 triệu đồng mỗi năm.", backend: "qdrant", sources: [{ id: "s1", title: "Thông tin tuyển sinh 2026", pageNumber: 12, sectionTitle: "Học phí", score: 0.92, content: "Học phí chương trình Công nghệ thông tin dự kiến từ 30 đến 36 triệu đồng mỗi năm." }] });
   if (pathname === "/api/auth/login") {
     return json({ accessToken: "audit-token", user: { id: "u1", fullName: "Nguyễn Minh Anh", email: "BIT240048@st.cmcu.edu.vn", roles: ["student"], status: "active" } });
   }
