@@ -1,5 +1,5 @@
 import { HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
 
@@ -105,7 +105,6 @@ function App() {
   const [users, setUsers] = useState({ items: [], totalItems: 0, page: 1, pageSize: 20, totalPages: 0 });
   const [userFilters, setUserFilters] = useState({ keyword: "", role: "", status: "" });
   const [documents, setDocuments] = useState({ items: [], totalItems: 0 });
-  const [documentChunks, setDocumentChunks] = useState([]);
   const [chatFeedbacks, setChatFeedbacks] = useState({ items: [], totalItems: 0 });
   const [chatFeedbackFilter, setChatFeedbackFilter] = useState("all");
   const [handoffTickets, setHandoffTickets] = useState({ items: [], totalItems: 0 });
@@ -116,11 +115,11 @@ function App() {
   const [evaluationQuestions, setEvaluationQuestions] = useState([]);
   const [evaluationRuns, setEvaluationRuns] = useState({ items: [], totalItems: 0 });
   const [latestEvaluationRun, setLatestEvaluationRun] = useState(null);
+  const evaluationAutomationToken = useRef("");
   const [documentUpload, setDocumentUpload] = useState({
     title: "",
     documentType: "regulation",
     source: "",
-    processNow: true,
     file: null,
   });
   const [status, setStatus] = useState({ loading: true, message: "Đang tải dữ liệu...", error: "" });
@@ -161,7 +160,14 @@ function App() {
           refreshDocuments(token);
           refreshChatFeedbacks(token);
           refreshHandoffTickets(token);
-          refreshEvaluation(token);
+          if (evaluationAutomationToken.current !== token) {
+            evaluationAutomationToken.current = token;
+            ensureEvaluationReady(token).catch((error) => {
+              setStatus({ loading: false, message: "", error: `Không thể tự động đánh giá RAG: ${error.message}` });
+            });
+          } else {
+            refreshEvaluation(token);
+          }
           refreshDashboard(token);
           refreshAiStatus(token);
         })
@@ -557,6 +563,30 @@ function App() {
     }
   }
 
+  async function ensureEvaluationReady(activeToken = token, forceRun = false) {
+    if (!activeToken) return;
+
+    let questions = await api("/api/admin/evaluation/questions?activeOnly=true", { token: activeToken });
+    if (questions.length === 0) {
+      await api("/api/admin/evaluation/questions/seed-defaults", {
+        method: "POST",
+        token: activeToken,
+      });
+      questions = await api("/api/admin/evaluation/questions?activeOnly=true", { token: activeToken });
+    }
+
+    const runs = await api("/api/admin/evaluation/runs?page=1&pageSize=1", { token: activeToken });
+    if (questions.length > 0 && (forceRun || !runs.items?.length)) {
+      await api("/api/admin/evaluation/runs", {
+        method: "POST",
+        token: activeToken,
+        body: JSON.stringify({ name: `Đánh giá tự động ${new Date().toLocaleString("vi-VN")}`, topK: 5 }),
+      });
+    }
+
+    await refreshEvaluation(activeToken);
+  }
+
   async function refreshChatConversations(activeToken = getChatAccessToken()) {
     const result = await api(`/api/chat/conversations?clientSessionId=${encodeURIComponent(clientSessionId)}&page=1&pageSize=20`, {
       token: activeToken || undefined,
@@ -582,36 +612,6 @@ function App() {
     setRagFile(null);
   }
 
-  async function seedGoldenQuestions() {
-    try {
-      setStatus({ loading: true, message: "Đang tạo bộ câu hỏi chuẩn...", error: "" });
-      await api("/api/admin/evaluation/questions/seed-defaults", {
-        method: "POST",
-        token,
-      });
-      await refreshEvaluation();
-      setStatus({ loading: false, message: "Bộ câu hỏi chuẩn đã sẵn sàng", error: "" });
-    } catch (error) {
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
-  async function runEvaluation() {
-    try {
-      setStatus({ loading: true, message: "Đang chạy đánh giá RAG...", error: "" });
-      const run = await api("/api/admin/evaluation/runs", {
-        method: "POST",
-        token,
-        body: JSON.stringify({ name: `Đánh giá giao diện ${new Date().toLocaleString("vi-VN")}`, topK: 5 }),
-      });
-      setLatestEvaluationRun(run);
-      await refreshEvaluation();
-      setStatus({ loading: false, message: "Đã chạy đánh giá RAG", error: "" });
-    } catch (error) {
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
   async function uploadDocument(event) {
     event.preventDefault();
     if (!documentUpload.file) {
@@ -625,7 +625,7 @@ function App() {
       form.append("title", documentUpload.title || documentUpload.file.name);
       form.append("documentType", documentUpload.documentType);
       form.append("source", documentUpload.source);
-      form.append("processNow", String(documentUpload.processNow));
+      form.append("processNow", "true");
       form.append("file", documentUpload.file);
       await api("/api/admin/documents", {
         method: "POST",
@@ -636,39 +636,13 @@ function App() {
         title: "",
         documentType: "regulation",
         source: "",
-        processNow: true,
         file: null,
       });
       await refreshDocuments();
-      setStatus({ loading: false, message: "Đã tải tài liệu lên", error: "" });
+      await ensureEvaluationReady(token, true);
+      setStatus({ loading: false, message: "Đã tải, xử lý tài liệu và đánh giá lại RAG", error: "" });
     } catch (error) {
       await refreshDocuments();
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
-  async function processDocument(versionId) {
-    try {
-      setStatus({ loading: true, message: "Đang xử lý tài liệu RAG...", error: "" });
-      await api(`/api/admin/documents/versions/${versionId}/process`, {
-        method: "POST",
-        token,
-      });
-      await refreshDocuments();
-      setStatus({ loading: false, message: "Đã xử lý tài liệu", error: "" });
-    } catch (error) {
-      await refreshDocuments();
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
-  async function loadDocumentChunks(versionId) {
-    try {
-      setStatus({ loading: true, message: "Đang tải các đoạn tài liệu...", error: "" });
-      const chunks = await api(`/api/admin/documents/versions/${versionId}/chunks`, { token });
-      setDocumentChunks(chunks);
-      setStatus({ loading: false, message: "Đã tải các đoạn tài liệu", error: "" });
-    } catch (error) {
       setStatus({ loading: false, message: "", error: error.message });
     }
   }
@@ -921,7 +895,6 @@ function App() {
           dashboard={dashboard}
           aiStatus={aiStatus}
           documents={documents}
-          documentChunks={documentChunks}
           chatFeedbacks={chatFeedbacks}
           chatFeedbackFilter={chatFeedbackFilter}
           handoffTickets={handoffTickets}
@@ -948,10 +921,6 @@ function App() {
           onRefreshEvaluation={() => refreshEvaluation()}
           onReplyHandoffTicket={replyHandoffTicket}
           onUpdateHandoffStatus={updateHandoffStatus}
-          onSeedGoldenQuestions={seedGoldenQuestions}
-          onRunEvaluation={runEvaluation}
-          onProcessDocument={processDocument}
-          onLoadDocumentChunks={loadDocumentChunks}
           onSubmit={submitAdminForm}
         />
       )}
@@ -1795,7 +1764,6 @@ function AdminView({
   dashboard,
   aiStatus,
   documents,
-  documentChunks,
   chatFeedbacks,
   chatFeedbackFilter,
   handoffTickets,
@@ -1819,10 +1787,6 @@ function AdminView({
   onRefreshEvaluation,
   onReplyHandoffTicket,
   onUpdateHandoffStatus,
-  onSeedGoldenQuestions,
-  onRunEvaluation,
-  onProcessDocument,
-  onLoadDocumentChunks,
   onSubmit,
 }) {
   const [adminTab, setAdminTab] = useState("overview");
@@ -1897,14 +1861,11 @@ function AdminView({
         <div className="admin-grid">
       <DocumentManager
         documents={documents}
-        chunks={documentChunks}
         status={status}
         upload={documentUpload}
         setUpload={setDocumentUpload}
         onUpload={onUploadDocument}
         onRefresh={onRefreshDocuments}
-        onProcess={onProcessDocument}
-        onLoadChunks={onLoadDocumentChunks}
       />
 
       <ChatFeedbackManager
@@ -1934,8 +1895,6 @@ function AdminView({
         latestRun={latestEvaluationRun}
         status={status}
         onRefresh={onRefreshEvaluation}
-        onSeed={onSeedGoldenQuestions}
-        onRun={onRunEvaluation}
       />
         </div>
       ) : null}
@@ -2138,7 +2097,7 @@ function UserManager({ users, filters, setFilters, onRefresh, onUpdateStatus }) 
   );
 }
 
-function DocumentManager({ documents, chunks, status, upload, setUpload, onUpload, onRefresh, onProcess, onLoadChunks }) {
+function DocumentManager({ documents, status, upload, setUpload, onUpload, onRefresh }) {
   const statusMessage = status?.message ?? "";
   const relevantStatus = Boolean(status?.error || /tài liệu|đoạn|RAG/i.test(statusMessage));
   const busy = Boolean(status?.loading && relevantStatus);
@@ -2176,14 +2135,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
             onChange={(event) => setUpload({ ...upload, file: event.target.files?.[0] ?? null })}
           />
         </label>
-        <label className="inline-check">
-          <input
-            type="checkbox"
-            checked={upload.processNow}
-            onChange={(event) => setUpload({ ...upload, processNow: event.target.checked })}
-          />
-          Xử lý và chia đoạn ngay
-        </label>
         <button className="primary-button compact" type="submit" disabled={busy}>
           {busy ? "Đang xử lý..." : "Tải lên"}
         </button>
@@ -2197,7 +2148,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
               <th>Loại</th>
               <th>Trạng thái</th>
               <th>Đoạn</th>
-              <th>Lệnh</th>
             </tr>
           </thead>
           <tbody>
@@ -2212,20 +2162,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
                   <td>{documentTypeLabel(document.documentType)}</td>
                   <td>{statusLabel(version?.processingStatus || document.status)}</td>
                   <td>{version?.chunkCount ?? 0}</td>
-                  <td>
-                    <div className="row-actions">
-                      {version ? (
-                        <>
-                          <button type="button" className="ghost-button" onClick={() => onProcess(version.id)} disabled={busy}>
-                            Xử lý
-                          </button>
-                          <button type="button" className="ghost-button" onClick={() => onLoadChunks(version.id)} disabled={busy}>
-                            Đoạn
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
                 </tr>
               );
             })}
@@ -2233,17 +2169,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
         </table>
       </div>
 
-      {chunks.length ? (
-        <div className="chunk-preview">
-          <h3>Xem trước đoạn tài liệu</h3>
-          {chunks.slice(0, 4).map((chunk) => (
-            <article key={chunk.id}>
-              <strong>#{chunk.chunkIndex + 1} {chunk.sectionTitle ? `- ${chunk.sectionTitle}` : ""}</strong>
-              <p>{chunk.content}</p>
-            </article>
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -2454,7 +2379,7 @@ function normalizeAiStatus(value) {
     : null;
 }
 
-function EvaluationManager({ questions, runs, latestRun, status, onRefresh, onSeed, onRun }) {
+function EvaluationManager({ questions, runs, latestRun, status, onRefresh }) {
   const statusMessage = status?.message ?? "";
   const relevantStatus = Boolean(status?.error || /đánh giá|câu hỏi chuẩn/i.test(statusMessage));
   const busy = Boolean(status?.loading && relevantStatus);
@@ -2470,12 +2395,6 @@ function EvaluationManager({ questions, runs, latestRun, status, onRefresh, onSe
         <div className="row-actions">
           <button className="ghost-button" type="button" onClick={onRefresh} disabled={busy}>
             Tải lại
-          </button>
-          <button className="ghost-button" type="button" onClick={onSeed} disabled={busy}>
-            Tạo câu hỏi chuẩn
-          </button>
-          <button className="primary-button compact" type="button" onClick={onRun} disabled={busy || questions.length === 0}>
-            {busy ? "Đang chạy..." : "Chạy đánh giá"}
           </button>
         </div>
       </div>
@@ -2510,7 +2429,7 @@ function EvaluationManager({ questions, runs, latestRun, status, onRefresh, onSe
           </div>
         </>
       ) : latestRun ? (
-        <EmptyState text={`Lần chạy gần nhất đang ở trạng thái ${evaluationStatusLabel(latestRun.status)} và chưa có kết quả chi tiết. Bấm “Chạy đánh giá” để tạo lần chạy mới.`} />
+        <EmptyState text={`Lần chạy gần nhất đang ở trạng thái ${evaluationStatusLabel(latestRun.status)} và chưa có kết quả chi tiết. Hệ thống sẽ tự động cập nhật sau khi xử lý tài liệu.`} />
       ) : (
         <EmptyState text="Chưa có lần chạy đánh giá nào." />
       )}
