@@ -104,23 +104,21 @@ $login = Invoke-RestMethod `
     -Body (@{ email = $AdminEmail; password = $AdminPassword } | ConvertTo-Json)
 $token = $login.data.accessToken
 Add-Type -AssemblyName System.Net.Http
-$httpClient = New-Object System.Net.Http.HttpClient
-$multipart = New-Object System.Net.Http.MultipartFormDataContent
+$httpClient = [System.Net.Http.HttpClient]::new()
+$multipart = [System.Net.Http.MultipartFormDataContent]::new()
 $fileStream = $null
 $fileContent = $null
 try {
-    $httpClient.DefaultRequestHeaders.Authorization =
-        New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $token)
+    $httpClient.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $token)
 
-    $multipart.Add((New-Object System.Net.Http.StringContent("Nguồn tuyển sinh CMCU 2026 - nguồn chính thức")), "title")
-    $multipart.Add((New-Object System.Net.Http.StringContent("admission_notice")), "documentType")
-    $multipart.Add((New-Object System.Net.Http.StringContent("https://tuyensinh.cmcu.edu.vn/")), "source")
-    $multipart.Add((New-Object System.Net.Http.StringContent("true")), "processNow")
+    $multipart.Add(([System.Net.Http.StringContent]::new("Nguồn tuyển sinh CMCU 2026 - nguồn chính thức")), "title")
+    $multipart.Add(([System.Net.Http.StringContent]::new("admission_notice")), "documentType")
+    $multipart.Add(([System.Net.Http.StringContent]::new("https://tuyensinh.cmcu.edu.vn/")), "source")
+    $multipart.Add(([System.Net.Http.StringContent]::new("true")), "processNow")
 
     $fileStream = [System.IO.File]::OpenRead($sourceFile)
-    $fileContent = New-Object System.Net.Http.StreamContent($fileStream)
-    $fileContent.Headers.ContentType =
-        New-Object System.Net.Http.Headers.MediaTypeHeaderValue("text/markdown")
+    $fileContent = [System.Net.Http.StreamContent]::new($fileStream)
+    $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::new("text/markdown")
     $multipart.Add($fileContent, "file", [System.IO.Path]::GetFileName($sourceFile))
 
     $uploadResponse = $httpClient.PostAsync(
