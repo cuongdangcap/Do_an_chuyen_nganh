@@ -111,7 +111,7 @@ $fileContent = $null
 try {
     $httpClient.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $token)
 
-    $multipart.Add(([System.Net.Http.StringContent]::new("Nguồn tuyển sinh CMCU 2026 - nguồn chính thức")), "title")
+    $multipart.Add(([System.Net.Http.StringContent]::new("Nguon tuyen sinh CMCU 2026 - nguon chinh thuc")), "title")
     $multipart.Add(([System.Net.Http.StringContent]::new("admission_notice")), "documentType")
     $multipart.Add(([System.Net.Http.StringContent]::new("https://tuyensinh.cmcu.edu.vn/")), "source")
     $multipart.Add(([System.Net.Http.StringContent]::new("true")), "processNow")
@@ -142,11 +142,11 @@ if ($uploadResult.success -ne $true) {
 
 Write-Host "Running representative admissions questions..."
 $questions = @(
-    "Học phí ngành Trí tuệ Nhân tạo năm 2026 là bao nhiêu?",
+    "Hoc phi nganh Tri tue Nhan tao nam 2026 la bao nhieu?",
     "hoc fi nghanh tri tue nhan tao bn vay",
-    "Trường Đại học CMC có những phương thức xét tuyển nào?",
+    "Truong Dai hoc CMC co nhung phuong thuc xet tuyen nao?",
     "chi tieu tuyen sin 2026 la bao nhieu",
-    "Thời tiết Hà Nội hôm nay thế nào?"
+    "Thoi tiet Ha Noi hom nay the nao?"
 )
 foreach ($question in $questions) {
     $response = Invoke-RestMethod `
