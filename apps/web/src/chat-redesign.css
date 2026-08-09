@@ -421,15 +421,20 @@
 }
 
 @media (max-width: 680px) {
-  .cmc-portal-header { position: sticky; top: 0; grid-template-columns: 1fr auto; min-height: 62px; }
-  .cmc-wordmark { height: 62px; border-right: 0; padding: 0 14px; }
+  .cmc-portal-header { position: sticky; top: 0; grid-template-columns: 1fr auto; grid-template-rows: 62px auto; min-height: 0; }
+  .cmc-wordmark { grid-row: 1; height: 62px; border-right: 0; padding: 0 14px; }
   .cmc-symbol { width: 31px; height: 31px; transform: scale(.82); transform-origin: left center; }
-  .cmc-portal-nav { display: none; }
-  .cmc-portal-account { padding-right: 10px; }
+  .cmc-portal-nav { display: grid; grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); height: auto; gap: 4px; padding: 5px 8px 8px; border-top: 1px solid var(--cmc-line); }
+  .cmc-portal-nav button,
+  .cmc-portal-nav button:nth-child(3),
+  .cmc-portal-nav button:nth-child(4) { display: block; min-height: 38px; padding: 6px; border-radius: 8px; font-size: .68rem; line-height: 1.2; }
+  .cmc-portal-nav button.active { background: #fff0f2; color: var(--cmc-red-dark); }
+  .cmc-portal-nav button::after { right: 8px; left: 8px; }
+  .cmc-portal-account { grid-row: 1; padding-right: 10px; }
   .cmc-login-link, .cmc-account-button { max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cmc-chat-workspace { display: block !important; min-height: calc(100vh - 62px); }
+  .cmc-chat-workspace { display: block !important; min-height: calc(100vh - 151px); }
   .cmc-chat-workspace > .chat-history { display: none !important; }
-  .cmc-chat-workspace > .chat-surface { min-height: calc(100vh - 62px); }
+  .cmc-chat-workspace > .chat-surface { min-height: calc(100vh - 151px); }
   .cmc-chat-workspace .chat-messages { padding: 25px 16px 18px !important; }
   .cmc-chat-welcome { align-content: center; min-height: 540px; }
   .cmc-ai-orb { width: 62px; height: 62px; }
@@ -441,7 +446,7 @@
   .cmc-composer-meta { display: none; }
   .cmc-chat-workspace > .chat-sources { min-height: 330px; padding: 24px 16px !important; }
   .cmc-chat-workspace .source-list { grid-template-columns: 1fr; }
-  .cmc-service-workspace { min-height: calc(100vh - 62px); padding: 24px 14px 40px; }
+  .cmc-service-workspace { min-height: calc(100vh - 151px); padding: 24px 14px 40px; }
   .cmc-service-heading { align-items: flex-start; }
   .cmc-service-heading > span { display: none; }
 }
