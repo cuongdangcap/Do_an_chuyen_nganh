@@ -231,7 +231,7 @@ public sealed class RagService(
 
         if (normalizedQuery.Contains("chi tieu", StringComparison.OrdinalIgnoreCase))
         {
-            return ["chi tieu", "1.800", "800", "2.600", "ha noi", "tp.hcm"];
+            return ["chi tieu", "2.315", "ha noi", "tp.hcm"];
         }
 
         if (normalizedQuery.Contains("diem chuan", StringComparison.OrdinalIgnoreCase))
@@ -264,7 +264,15 @@ public sealed class RagService(
             }
         }
 
-        return string.Join(' ', builder.ToString().Normalize(NormalizationForm.FormC).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        var normalized = string.Join(' ', builder.ToString().Normalize(NormalizationForm.FormC).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return normalized
+            .Replace("hoc fi", "hoc phi", StringComparison.OrdinalIgnoreCase)
+            .Replace("hoc phii", "hoc phi", StringComparison.OrdinalIgnoreCase)
+            .Replace("tuyen sin", "tuyen sinh", StringComparison.OrdinalIgnoreCase)
+            .Replace("xet tuen", "xet tuyen", StringComparison.OrdinalIgnoreCase)
+            .Replace("nghanh", "nganh", StringComparison.OrdinalIgnoreCase)
+            .Replace("ngah ", "nganh ", StringComparison.OrdinalIgnoreCase)
+            .Replace("nganhh", "nganh", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? GetString(Dictionary<string, object?> metadata, string key)
@@ -317,6 +325,24 @@ public sealed class RagService(
     private static StructuredAnswer? TryBuildImmediateStructuredAnswer(string question)
     {
         var normalizedQuestion = NormalizeForSearch(question);
+        if (IsGreeting(normalizedQuestion))
+        {
+            const string answer = "Chào bạn! Mình là trợ lý tuyển sinh Trường Đại học CMC. Bạn có thể hỏi mình về ngành học, học phí, học bổng, phương thức xét tuyển, hồ sơ, chỉ tiêu, cơ sở đào tạo hoặc thông tin liên hệ.";
+            return new StructuredAnswer(answer, []);
+        }
+
+        if (!IsAdmissionsDomainQuestion(normalizedQuestion))
+        {
+            const string answer = "Mình chỉ hỗ trợ thông tin tuyển sinh và học tập tại Trường Đại học CMC nên chưa thể trả lời chắc chắn câu hỏi này. Bạn có thể hỏi về ngành học, học phí, học bổng, phương thức xét tuyển, hồ sơ hoặc cơ sở của trường.";
+            return new StructuredAnswer(answer, []);
+        }
+
+        if (IsQuotaQuestion(normalizedQuestion))
+        {
+            const string answer = "Bảng ngành/chương trình tuyển sinh 2026 trên trang chính thức của Trường Đại học CMC ghi tổng chỉ tiêu là 2.315. Trên cùng trang vẫn có một ô tổng quan hiển thị 2.300, vì vậy nếu cần dùng con số cho hồ sơ chính thức, bạn nên xác nhận lại với Phòng Tuyển sinh qua 024 7102 9999 hoặc tuyensinh@cmcu.edu.vn.";
+            return new StructuredAnswer(answer, [BuildStructuredSource("Thông tin tuyển sinh Đại học CMC năm 2026", "https://tuyensinh.cmcu.edu.vn/", answer)]);
+        }
+
         if (IsSchoolHistoryQuestion(normalizedQuestion))
         {
             const string answer = "Theo trang giới thiệu chính thức của Trường Đại học CMC, ngày 26/7/2022 Trường Đại học CMC chính thức được đổi tên theo Quyết định số 895/QĐ-TTg của Thủ tướng Chính phủ. Vì vậy, nếu hỏi theo mốc Trường Đại học CMC hiện nay, hệ thống lấy mốc năm 2022. Trường cũng công bố chiến lược chuyển đổi “AI University” vào ngày 22/7/2024.";
@@ -336,6 +362,33 @@ public sealed class RagService(
         }
 
         return null;
+    }
+
+    private static bool IsGreeting(string normalizedQuestion)
+    {
+        var words = normalizedQuestion.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length <= 8 && (normalizedQuestion.Contains("xin chao", StringComparison.OrdinalIgnoreCase)
+            || normalizedQuestion is "chao" or "hello" or "hi" or "hey"
+            || normalizedQuestion.StartsWith("chao ban", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsAdmissionsDomainQuestion(string normalizedQuestion)
+    {
+        string[] domainSignals =
+        [
+            "cmc", "cmcu", "tuyen sinh", "xet tuyen", "nganh", "chuong trinh", "hoc phi",
+            "hoc bong", "hoc ba", "diem chuan", "diem san", "ho so", "chi tieu", "giang vien", "giao vien",
+            "sinh vien", "phu huynh", "cmc-test", "thpt", "to hop", "nguyen vong", "tin chi", "ielts",
+            "ky tuc xa", "thuc tap", "viec lam", "co so", "campus", "dia chi", "lien he", "nhap hoc",
+            "thanh lap", "doi ten", "hieu truong", "day tot", "chat luong", "uy tin",
+        ];
+        return domainSignals.Any(signal => normalizedQuestion.Contains(signal, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsQuotaQuestion(string normalizedQuestion)
+    {
+        return normalizedQuestion.Contains("chi tieu", StringComparison.OrdinalIgnoreCase)
+            || normalizedQuestion.Contains("tuyen bao nhieu", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsFacultyStaffQuestion(string normalizedQuestion)
@@ -732,7 +785,7 @@ public sealed class RagService(
 
         if (normalizedQuestion.Contains("chi tieu", StringComparison.OrdinalIgnoreCase))
         {
-            return ["## Chỉ tiêu tuyển sinh", "tổng 2.600 chỉ tiêu"];
+            return ["## Chỉ tiêu tuyển sinh", "2.315", "2.300"];
         }
 
         if (normalizedQuestion.Contains("diem chuan", StringComparison.OrdinalIgnoreCase))

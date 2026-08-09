@@ -143,10 +143,22 @@ public sealed class AuthService(
         return ToSummary(user);
     }
 
-    public async Task<UserSummary> UpdateStatusAsync(Guid userId, UpdateUserStatusRequest request, CancellationToken cancellationToken)
+    public async Task<UserSummary> UpdateStatusAsync(Guid userId, UpdateUserStatusRequest request, Guid actorId, CancellationToken cancellationToken)
     {
         var user = await LoadUserByIdAsync(userId, cancellationToken) ?? throw new KeyNotFoundException("User not found.");
-        user.Status = request.Status.Trim().ToLowerInvariant();
+        var normalizedStatus = request.Status.Trim().ToLowerInvariant();
+        if (normalizedStatus is not "active" and not "inactive")
+        {
+            throw new InvalidOperationException("Trạng thái tài khoản chỉ có thể là đang hoạt động hoặc đã khóa.");
+        }
+
+        var roles = GetRoleCodes(user);
+        if (user.Id == actorId || roles.Contains(RoleCodes.Admin) || roles.Contains(RoleCodes.Staff))
+        {
+            throw new InvalidOperationException("Không thể khóa hoặc thay đổi trạng thái tài khoản quản trị trong màn hình tài khoản người dùng.");
+        }
+
+        user.Status = normalizedStatus;
         user.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
         return ToSummary(user);

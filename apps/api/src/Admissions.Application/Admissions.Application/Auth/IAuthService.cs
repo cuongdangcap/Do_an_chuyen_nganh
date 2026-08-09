@@ -10,6 +10,6 @@ public interface IAuthService
     Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken);
     Task<UserSummary?> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken);
     Task<UserSummary> CreateStaffAsync(CreateStaffRequest request, Guid? assignedBy, CancellationToken cancellationToken);
-    Task<UserSummary> UpdateStatusAsync(Guid userId, UpdateUserStatusRequest request, CancellationToken cancellationToken);
+    Task<UserSummary> UpdateStatusAsync(Guid userId, UpdateUserStatusRequest request, Guid actorId, CancellationToken cancellationToken);
     Task<UserSummary> UpdateRolesAsync(Guid userId, UpdateUserRolesRequest request, Guid? assignedBy, CancellationToken cancellationToken);
 }

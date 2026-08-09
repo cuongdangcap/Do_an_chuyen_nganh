@@ -32,7 +32,7 @@ public sealed class AdminUsersController(
     {
         try
         {
-            var actorId = User.GetUserId();
+            var actorId = User.GetUserId() ?? throw new InvalidOperationException("Authenticated user id is missing.");
             var user = await authService.CreateStaffAsync(request, actorId, cancellationToken);
             return Ok(ApiResponse<UserSummary>.Ok(user, "Staff account created.", HttpContext.TraceIdentifier));
         }
@@ -47,12 +47,17 @@ public sealed class AdminUsersController(
     {
         try
         {
-            var user = await authService.UpdateStatusAsync(id, request, cancellationToken);
+            var actorId = User.GetUserId() ?? throw new InvalidOperationException("Authenticated user id is missing.");
+            var user = await authService.UpdateStatusAsync(id, request, actorId, cancellationToken);
             return Ok(ApiResponse<UserSummary>.Ok(user, "User status updated.", HttpContext.TraceIdentifier));
         }
         catch (KeyNotFoundException)
         {
             return NotFound(ApiResponse<object>.Fail("USER_NOT_FOUND", "User not found.", HttpContext.TraceIdentifier));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail("PROTECTED_ACCOUNT", ex.Message, HttpContext.TraceIdentifier));
         }
     }
 

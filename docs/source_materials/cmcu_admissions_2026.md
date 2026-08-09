@@ -1,4 +1,6 @@
-# Nguồn tuyển sinh CMCU 2026 - bản tóm tắt dùng cho RAG
+# Nguồn tuyển sinh CMCU 2026 - bản chuẩn hóa dùng cho RAG
+
+Cập nhật và đối chiếu lần cuối: 09/08/2026. Chỉ dùng nguồn thuộc tên miền chính thức `cmcu.edu.vn`; không đưa tệp demo, tệp thử nghiệm hoặc tài liệu không rõ nguồn vào kho kiến thức.
 
 Nguồn chính thức:
 
@@ -9,6 +11,9 @@ Nguồn chính thức:
 - https://cmcu.edu.vn/hoc-phi/
 - https://cmcu.edu.vn/chinh-sach-hoc-bong/
 - https://cmcu.edu.vn/cau-hoi-thuong-gap/
+- https://cmcu.edu.vn/hieu-ro-cac-phuong-thuc-xet-tuyen-cua-truong-dai-hoc-cmc-nam-2026/
+- https://cmcu.edu.vn/thong-bao-diem-san-nop-ho-so-xet-tuyen-truong-dai-hoc-cmc-va-quy-doi-diem-tuong-duong-giua-cac-phuong-thuc-xet-tuyen-nam-2026/
+- https://tuyensinh.cmcu.edu.vn/
 - https://cmcu.edu.vn/giang-vien/
 - https://cmcu.edu.vn/lien-he/
 
@@ -80,46 +85,49 @@ Trường Đại học CMC có chương trình tiếng Anh trong hệ đào tạ
 
 ## Chỉ tiêu tuyển sinh 2026
 
-Thông tin tuyển sinh đại học hệ chính quy năm 2026 của Trường Đại học CMC công bố chỉ tiêu tại Hà Nội là 1.800 sinh viên và tại TP.HCM là 800 sinh viên, tổng 2.600 chỉ tiêu.
+Trong bảng ngành/chương trình tuyển sinh 2026 trên trang chính thức, Trường Đại học CMC ghi tổng chỉ tiêu là **2.315**. Một ô tổng quan trên cùng trang hiện vẫn hiển thị **2.300**. Đây là dữ liệu không thống nhất ngay trên nguồn chính thức; chatbot phải nêu rõ sự khác biệt và khuyên thí sinh xác nhận với Phòng Tuyển sinh qua 024 7102 9999 hoặc tuyensinh@cmcu.edu.vn nếu cần dùng con số trong hồ sơ.
+
+Không dùng lại số chỉ tiêu của bản tóm tắt cũ. Không tự suy diễn chỉ tiêu từng ngành từ các ô gộp trong bảng HTML.
 
 ## Ngành/chương trình và mã xét tuyển
 
 Nhóm Máy tính và Công nghệ thông tin:
 
-- IT: Công nghệ Thông tin, chỉ tiêu Hà Nội 240, TP.HCM 140.
-- CS: Khoa học Máy tính, chỉ tiêu Hà Nội 80, TP.HCM 80.
-- AI: Trí tuệ Nhân tạo, chỉ tiêu Hà Nội 80, TP.HCM 100.
-- SE: Kỹ thuật Phần mềm, chỉ tiêu Hà Nội 80.
-- NS: An ninh Mạng, chỉ tiêu Hà Nội 40, dự kiến mở năm 2026.
+- IT: Công nghệ Thông tin, tuyển tại Hà Nội và TP.HCM.
+- NS: An ninh Mạng, tuyển tại Hà Nội.
+- CS: Khoa học Máy tính, tuyển tại Hà Nội và TP.HCM.
+- AI: Trí tuệ Nhân tạo, tuyển tại Hà Nội và TP.HCM.
+- SE: Kỹ thuật Phần mềm, tuyển tại Hà Nội.
 
 Nhóm Công nghệ kỹ thuật:
 
-- EC: Công nghệ Kỹ thuật Điện tử - Viễn thông, định hướng Thiết kế vi mạch bán dẫn, chỉ tiêu Hà Nội 80, TP.HCM 40.
+- EC: Công nghệ Kỹ thuật Điện tử - Viễn thông, định hướng Thiết kế vi mạch bán dẫn, tuyển tại Hà Nội và TP.HCM.
 
 Nhóm Kinh doanh và Quản lý:
 
-- BA: Quản trị Kinh doanh, chỉ tiêu Hà Nội 160, TP.HCM 120.
-- LS: Logistics và Quản lý chuỗi cung ứng, chỉ tiêu Hà Nội 80, TP.HCM 120.
-- MK: Digital Marketing, chỉ tiêu Hà Nội 160, TP.HCM 120.
-- EM: Thương mại Điện tử, chỉ tiêu Hà Nội 80.
-- IB: Kinh doanh Quốc tế, chỉ tiêu Hà Nội 40, dự kiến mở năm 2026.
+- BA: Quản trị Kinh doanh, tuyển tại Hà Nội và TP.HCM.
+- IB: Kinh doanh Quốc tế, tuyển tại Hà Nội.
+- LS: Logistics và Quản lý chuỗi cung ứng, tuyển tại Hà Nội và TP.HCM.
+- MK: Digital Marketing, tuyển tại Hà Nội và TP.HCM.
+- EM: Thương mại Điện tử, tuyển tại Hà Nội.
 
 Nhóm Báo chí và Truyền thông:
 
-- MC: Truyền thông Đa phương tiện, chỉ tiêu Hà Nội 80, dự kiến mở năm 2026.
-- PR: Quan hệ Công chúng, chỉ tiêu Hà Nội 40, dự kiến mở năm 2026.
+- MC: Truyền thông Đa phương tiện, tuyển tại Hà Nội.
+- PR: Quan hệ Công chúng, tuyển tại Hà Nội.
 
 Nhóm Nghệ thuật:
 
-- GD: Thiết kế Đồ họa, chỉ tiêu Hà Nội 160, TP.HCM 80.
-- GA: Đồ họa Game, chỉ tiêu Hà Nội 80.
-- DA: Thiết kế Mỹ thuật số, chỉ tiêu Hà Nội 40, dự kiến mở năm 2026.
+- GD: Thiết kế Đồ họa, tuyển tại Hà Nội và TP.HCM.
+- GA: Đồ họa Game, tuyển tại Hà Nội.
+- DA: Thiết kế Mỹ thuật số, tuyển tại Hà Nội.
 
 Nhóm Nhân văn:
 
-- KL: Ngôn ngữ Hàn Quốc, chỉ tiêu Hà Nội 80.
-- CL: Ngôn ngữ Trung Quốc, chỉ tiêu Hà Nội 160.
-- CB: Tiếng Trung Thương mại, chỉ tiêu Hà Nội 40, dự kiến mở năm 2026.
+- CL: Ngôn ngữ Trung Quốc, tuyển tại Hà Nội.
+- CB: Tiếng Trung Thương mại, tuyển tại Hà Nội.
+- CL-IP: Ngôn ngữ Trung Quốc, chương trình 2+2 giữa CMC và CNU, tuyển tại Hà Nội.
+- KL: Ngôn ngữ Hàn Quốc, tuyển tại Hà Nội.
 
 ## Tổ hợp xét tuyển
 
@@ -177,7 +185,7 @@ Nhóm Nhân văn:
 
 ## Học bổng, ưu đãi và lệ phí
 
-Trường Đại học CMC công bố quỹ học bổng, ưu đãi “CMC - Vì bạn xứng đáng” năm 2026 trị giá 96 tỷ đồng.
+Trường Đại học CMC công bố quỹ học bổng, ưu đãi “CMC - Vì bạn xứng đáng” năm 2026 trị giá 96 tỷ đồng, gồm các mức: CMC Khai phóng 100%, CMC Sáng tạo 70%, CMC Tiên phong 50% và CMC Kiến tạo 30% học phí toàn khóa (không bao gồm học phí chương trình tiếng Anh), theo điều kiện từng nhóm.
 
 Trường công bố tặng iPad hoặc máy tính bảng có giá trị tương đương cho 100% tân sinh viên nhập học năm 2026 nếu đáp ứng điều kiện theo thông tin tuyển sinh.
 
@@ -195,4 +203,6 @@ Với phương thức xét kết quả thi tốt nghiệp THPT, thí sinh theo l
 
 ## Điểm chuẩn
 
-Hệ thống không tự bịa điểm chuẩn năm 2026. Khi Trường Đại học CMC công bố điểm trúng tuyển chính thức, quản trị viên có thể cập nhật điểm chuẩn trong cổng quản trị.
+Ngày 10/07/2026, Trường Đại học CMC đã đăng thông báo **điểm sàn nộp hồ sơ** và quy đổi điểm tương đương giữa các phương thức. Điểm sàn không đồng nghĩa với điểm chuẩn trúng tuyển.
+
+Hệ thống không tự bịa điểm chuẩn năm 2026. Nếu nguồn chính thức chưa công bố điểm trúng tuyển tại thời điểm trả lời, chatbot phải nói rõ là chưa có dữ liệu điểm chuẩn, đồng thời có thể dẫn người dùng tới thông báo điểm sàn hiện hành.

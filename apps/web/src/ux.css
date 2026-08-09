@@ -307,6 +307,7 @@ label { display: grid; gap: 6px; color: #4f6872; font-size: .88rem; font-weight:
 }
 .admin-card { display: grid; gap: 15px; padding: 20px; }
 .metric {
+  position: relative;
   display: grid;
   gap: 3px;
   padding: 14px;
@@ -315,7 +316,44 @@ label { display: grid; gap: 6px; color: #4f6872; font-size: .88rem; font-weight:
   background: var(--surface-soft);
 }
 .metric strong { font-size: 1.45rem; line-height: 1.1; }
-.metric span { color: var(--muted); font-size: .82rem; }
+.metric .metric-label { color: var(--muted); font-size: .82rem; }
+.metric-help-wrap { position: absolute; top: 9px; right: 9px; z-index: 2; }
+.metric-help-button {
+  display: grid;
+  width: 32px;
+  min-height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 9px, #c7c9d1 9px 10px, transparent 10px);
+  color: #71727a;
+  font: 800 .7rem/1 system-ui, sans-serif;
+  cursor: help;
+}
+.metric-help-button:hover, .metric-help-button:focus-visible {
+  background: radial-gradient(circle, #fff 0 9px, var(--primary) 9px 10px, transparent 10px);
+  color: var(--primary);
+  outline: none;
+}
+.metric-help-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: none;
+  width: min(260px, calc(100vw - 48px));
+  padding: 10px 12px;
+  border: 1px solid #d9dbe2;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(22, 23, 27, .16);
+  color: #34353b;
+  font-size: .76rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.metric-help-wrap:hover .metric-help-popover,
+.metric-help-wrap:focus-within .metric-help-popover { display: block; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
 .form-grid label:nth-child(3n), .form-grid label:has(select[multiple]) { grid-column: 1 / -1; }

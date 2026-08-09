@@ -1707,9 +1707,12 @@ function RagChatPanel({
         <div className="cmc-composer-wrap">
           <form className="rag-chat-form" onSubmit={onSubmit}>
             <label className="chat-file-input" title="Đính kèm tệp riêng">
-              <span aria-hidden="true">📎</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                <path d="M9.5 17.5 16.8 10.2a3.2 3.2 0 0 0-4.5-4.5L4.7 13.3a5 5 0 0 0 7.1 7.1l7.6-7.6" />
+              </svg>
               <span className="sr-only">Đính kèm tệp riêng</span>
               <input
+                hidden
                 type="file"
                 accept=".pdf,.docx,.png,.jpg,.jpeg,.txt,.md"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
@@ -2123,11 +2126,9 @@ function UserManager({ users, filters, setFilters, onRefresh, onUpdateStatus }) 
         <label>
           Vai trò
           <select value={filters.role} onChange={(event) => updateFilter("role", event.target.value)}>
-            <option value="">Tất cả</option>
+            <option value="">Tất cả sinh viên và phụ huynh</option>
             <option value="student">Sinh viên</option>
             <option value="parent">Phụ huynh</option>
-            <option value="staff">Nhân viên</option>
-            <option value="admin">Quản trị viên</option>
           </select>
         </label>
         <label>
@@ -2446,22 +2447,22 @@ function AdminDashboardPanel({ token, dashboard, aiStatus, onRefresh }) {
       </div>
       {dashboard ? (
         <div className="dashboard-metrics">
-          <Metric label="Người dùng" value={dashboard.totalUsers} />
-          <Metric label="Tài liệu" value={dashboard.totalDocuments} />
-          <Metric label="Tài liệu xong" value={dashboard.completedDocumentVersions} />
-          <Metric label="Cuộc chat" value={dashboard.totalConversations} />
-          <Metric label="Tin nhắn" value={dashboard.totalChatMessages} />
-          <Metric label="Đánh giá âm" value={dashboard.negativeFeedback} />
-          <Metric label="Phiếu mở" value={dashboard.openHandoffTickets} />
-          <Metric label="Đã xử lý" value={dashboard.resolvedHandoffTickets} />
-          <Metric label="Lượt đánh giá" value={dashboard.evaluationRuns} />
-          <Metric label="Hit@K" value={percent(dashboard.latestEvaluationHitRateAtK)} />
-          <Metric label="Từ khóa" value={percent(dashboard.latestEvaluationKeywordHitRate)} />
-          <Metric label="Độ trễ" value={`${Math.round(dashboard.averageChatLatencyMs)}ms`} />
-          <Metric label="Dịch vụ AI" value={statusLabel(visibleAiStatus?.aiServiceStatus)} />
-          <Metric label="Vector" value={visibleAiStatus?.vectorBackend ?? "-"} />
-          <Metric label="Qdrant" value={visibleAiStatus?.qdrantAvailable ? "bật" : "tắt"} />
-          <Metric label="LLM" value={visibleAiStatus?.llmConfigured ? "sẵn sàng" : "tắt"} />
+          <Metric label="Người dùng" value={dashboard.totalUsers} help="Tổng số tài khoản đang có trong hệ thống." />
+          <Metric label="Tài liệu" value={dashboard.totalDocuments} help="Số tài liệu đã được đưa vào khu vực kiến thức của AI." />
+          <Metric label="Tài liệu xong" value={dashboard.completedDocumentVersions} help="Số phiên bản tài liệu đã đọc và xử lý thành công, sẵn sàng để AI tra cứu." />
+          <Metric label="Cuộc chat" value={dashboard.totalConversations} help="Tổng số phiên trò chuyện đã được tạo." />
+          <Metric label="Tin nhắn" value={dashboard.totalChatMessages} help="Tổng số câu hỏi và câu trả lời trong tất cả cuộc trò chuyện." />
+          <Metric label="Đánh giá âm" value={dashboard.negativeFeedback} help="Số câu trả lời bị người dùng đánh giá chưa hữu ích (nút không thích)." />
+          <Metric label="Phiếu mở" value={dashboard.openHandoffTickets} help="Số yêu cầu đang chờ quản trị viên hoặc tư vấn viên tiếp nhận và trả lời." />
+          <Metric label="Đã xử lý" value={dashboard.resolvedHandoffTickets} help="Số yêu cầu hỗ trợ đã được trả lời và đóng." />
+          <Metric label="Lượt đánh giá" value={dashboard.evaluationRuns} help="Số lần hệ thống chạy bộ câu hỏi chuẩn để kiểm tra khả năng tìm đúng tài liệu." />
+          <Metric label="Hit@K" value={percent(dashboard.latestEvaluationHitRateAtK)} help="Tỷ lệ câu hỏi mà nguồn đúng xuất hiện trong K kết quả đầu tiên. Càng gần 100% càng tốt." />
+          <Metric label="Từ khóa" value={percent(dashboard.latestEvaluationKeywordHitRate)} help="Tỷ lệ từ khóa mong đợi được tìm thấy trong nguồn mà AI truy xuất." />
+          <Metric label="Độ trễ" value={`${Math.round(dashboard.averageChatLatencyMs)}ms`} help="Thời gian trung bình từ lúc gửi câu hỏi đến khi hệ thống tạo xong câu trả lời. 1.000 ms bằng 1 giây." />
+          <Metric label="Dịch vụ AI" value={statusLabel(visibleAiStatus?.aiServiceStatus)} help="Tình trạng hoạt động của dịch vụ đọc tài liệu và tìm kiếm kiến thức." />
+          <Metric label="Vector" value={visibleAiStatus?.vectorBackend ?? "-"} help="Công nghệ biến nội dung thành dãy số để tìm những đoạn có ý nghĩa gần với câu hỏi." />
+          <Metric label="Qdrant" value={visibleAiStatus?.qdrantAvailable ? "bật" : "tắt"} help="Kho dữ liệu vector dùng để lưu và tìm nhanh các đoạn tài liệu liên quan." />
+          <Metric label="LLM" value={visibleAiStatus?.llmConfigured ? "sẵn sàng" : "tắt"} help="Mô hình ngôn ngữ lớn dùng các nguồn đã tìm được để diễn đạt câu trả lời tự nhiên, dễ đọc." />
         </div>
       ) : (
         <EmptyState text="Đang chờ dữ liệu bảng điều khiển." />
@@ -2600,11 +2601,18 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-function Metric({ label, value }) {
+function Metric({ label, value, help }) {
+  const helpId = help ? `metric-help-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : undefined;
   return (
     <div className="metric">
+      {help ? (
+        <span className="metric-help-wrap">
+          <button className="metric-help-button" type="button" aria-label={`Giải thích ${label}`} aria-describedby={helpId}>?</button>
+          <span className="metric-help-popover" id={helpId} role="tooltip">{help}</span>
+        </span>
+      ) : null}
       <strong>{value}</strong>
-      <span>{label}</span>
+      <span className="metric-label">{label}</span>
     </div>
   );
 }

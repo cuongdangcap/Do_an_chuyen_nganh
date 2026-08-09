@@ -131,6 +131,12 @@ async function openPortal(page) {
     await guestButton.click();
   }
   await page.getByPlaceholder("Nhập câu hỏi tuyển sinh của bạn...").waitFor();
+  const fileInputVisible = await page.locator('.chat-file-input input[type="file"]').evaluate((input) => {
+    const rect = input.getBoundingClientRect();
+    const style = getComputedStyle(input);
+    return style.display !== "none" && rect.width > 0 && rect.height > 0;
+  });
+  if (fileInputVisible) throw new Error("chat composer: native file input is visibly occupying its own box");
 }
 
 async function auditViewport(browser, viewport, suffix) {
@@ -173,6 +179,16 @@ async function auditViewport(browser, viewport, suffix) {
   for (const tab of ["Tổng quan", "Tài khoản", "RAG & hỗ trợ", "Đánh giá", "Dữ liệu tuyển sinh"]) {
     await page.getByRole("button", { name: tab, exact: true }).click();
     await page.waitForTimeout(120);
+    if (tab === "Tổng quan") {
+      const helpButton = page.getByRole("button", { name: "Giải thích Hit@K" });
+      await helpButton.focus();
+      await page.getByRole("tooltip").filter({ hasText: "K kết quả đầu tiên" }).waitFor();
+    }
+    if (tab === "Tài khoản") {
+      const roleOptions = await page.getByLabel("Vai trò").locator("option").allTextContents();
+      const forbiddenRoles = roleOptions.filter((label) => /Nhân viên|Quản trị viên/.test(label));
+      if (forbiddenRoles.length) throw new Error(`admin accounts: privileged roles exposed in member filter: ${forbiddenRoles.join(", ")}`);
+    }
     await assertLayout(page, `admin-${tab}-${suffix}`);
     await shot(page, `admin-${tab.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}-${suffix}`);
   }

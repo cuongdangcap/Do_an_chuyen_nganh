@@ -342,9 +342,10 @@
 .cmc-chat-workspace .rag-chat-form textarea:focus { outline: none; }
 .cmc-chat-workspace .rag-chat-form textarea::placeholder { color: #a0a1a7; }
 .cmc-chat-workspace .chat-file-input { display: grid !important; width: 39px; min-height: 39px !important; overflow: hidden; place-items: center; padding: 0 !important; border-radius: 10px; color: #777880; font-size: 0; cursor: pointer; }
-.cmc-chat-workspace .chat-file-input:hover { background: #f4f4f5; color: var(--cmc-red); }\n.cmc-chat-workspace .chat-file-input::after { display: none !important; content: none !important; }
-.cmc-chat-workspace .chat-file-input > span:first-child { font-size: 1rem; transform: none; }
-.cmc-chat-workspace .chat-file-input input { position: absolute; width: 1px !important; height: 1px !important; min-height: 0 !important; overflow: hidden; opacity: 0; pointer-events: none; }
+.cmc-chat-workspace .chat-file-input:hover { background: #f4f4f5; color: var(--cmc-red); }
+.cmc-chat-workspace .chat-file-input::after { display: none !important; content: none !important; }
+.cmc-chat-workspace .chat-file-input > svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cmc-chat-workspace .chat-file-input input { display: none !important; }
 .chat-send-button { display: grid; width: 43px; min-height: 43px; place-items: center; border: 0; border-radius: 13px; background: var(--cmc-red); color: #fff; font-size: 1.1rem; font-weight: 900; }
 .chat-send-button:hover { background: var(--cmc-red-dark); }
 .chat-send-button:disabled { background: #e6e6e9; color: #a5a6ab; cursor: default; }

@@ -19,21 +19,21 @@ public sealed class DatabaseSeeder(
         new("CS", "Khoa học Máy tính", "CMC-ICT", "Máy tính và Công nghệ thông tin", 80, 80, "TECH", 14_742_000m, 18_018_000m, 21_840_000m),
         new("AI", "Trí tuệ Nhân tạo", "CMC-ICT", "Máy tính và Công nghệ thông tin", 80, 100, "TECH", 14_742_000m, 18_018_000m, 21_840_000m),
         new("SE", "Kỹ thuật Phần mềm", "CMC-ICT", "Máy tính và Công nghệ thông tin", 80, null, "TECH", 14_742_000m, 18_018_000m, 21_840_000m),
-        new("NS", "An ninh Mạng", "CMC-ICT", "Máy tính và Công nghệ thông tin", 40, null, "TECH", 14_742_000m, 18_018_000m, 21_840_000m, true),
+        new("NS", "An ninh Mạng", "CMC-ICT", "Máy tính và Công nghệ thông tin", 40, null, "TECH", 14_742_000m, 18_018_000m, 21_840_000m),
         new("EC", "Công nghệ Kỹ thuật Điện tử - Viễn thông", "CMC-ENG", "Công nghệ kỹ thuật", 80, 40, "EC", 14_742_000m, 18_018_000m, 21_840_000m, Subtitle: "Thiết kế vi mạch bán dẫn"),
         new("BA", "Quản trị Kinh doanh", "CMC-BUS", "Kinh doanh và Quản lý", 160, 120, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
         new("LS", "Logistics và Quản lý chuỗi cung ứng", "CMC-BUS", "Kinh doanh và Quản lý", 80, 120, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
         new("MK", "Digital Marketing", "CMC-BUS", "Kinh doanh và Quản lý", 160, 120, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
         new("EM", "Thương mại Điện tử", "CMC-BUS", "Kinh doanh và Quản lý", 80, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
-        new("IB", "Kinh doanh Quốc tế", "CMC-BUS", "Kinh doanh và Quản lý", 40, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m, true),
-        new("MC", "Truyền thông Đa phương tiện", "CMC-MEDIA", "Báo chí và Truyền thông", 80, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m, true),
-        new("PR", "Quan hệ Công chúng", "CMC-MEDIA", "Báo chí và Truyền thông", 40, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m, true),
+        new("IB", "Kinh doanh Quốc tế", "CMC-BUS", "Kinh doanh và Quản lý", 40, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
+        new("MC", "Truyền thông Đa phương tiện", "CMC-MEDIA", "Báo chí và Truyền thông", 80, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
+        new("PR", "Quan hệ Công chúng", "CMC-MEDIA", "Báo chí và Truyền thông", 40, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
         new("GD", "Thiết kế Đồ họa", "CMC-ART", "Nghệ thuật", 160, 80, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
         new("GA", "Đồ họa Game", "CMC-ART", "Nghệ thuật", 80, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
-        new("DA", "Thiết kế Mỹ thuật số", "CMC-ART", "Nghệ thuật", 40, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m, true),
+        new("DA", "Thiết kế Mỹ thuật số", "CMC-ART", "Nghệ thuật", 40, null, "BUS", 13_608_000m, 16_632_000m, 20_160_000m),
         new("KL", "Ngôn ngữ Hàn Quốc", "CMC-LANG", "Nhân văn", 80, null, "BUS", 12_474_000m, 15_246_000m, 18_480_000m),
         new("CL", "Ngôn ngữ Trung Quốc", "CMC-LANG", "Nhân văn", 160, null, "BUS", 12_474_000m, 15_246_000m, 18_480_000m),
-        new("CB", "Tiếng Trung Thương mại", "CMC-LANG", "Nhân văn", 40, null, "BUS", 12_474_000m, 15_246_000m, 18_480_000m, true),
+        new("CB", "Tiếng Trung Thương mại", "CMC-LANG", "Nhân văn", 40, null, "BUS", 12_474_000m, 15_246_000m, 18_480_000m),
     ];
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
@@ -106,7 +106,12 @@ public sealed class DatabaseSeeder(
 
     private async Task SeedStudentAccountsAsync(CancellationToken cancellationToken)
     {
-        const string defaultPassword = "Student123456!";
+        var defaultPassword = configuration["SeedStudent:Password"] ?? configuration["SeedAdmin:Password"];
+        if (string.IsNullOrWhiteSpace(defaultPassword))
+        {
+            return;
+        }
+
         var studentRole = await dbContext.Roles.FirstAsync(x => x.Code == RoleCodes.Student, cancellationToken);
 
         for (var number = 240001; number <= 240100; number++)
@@ -214,7 +219,7 @@ public sealed class DatabaseSeeder(
         }
 
         await EnsureFaqsAsync(cancellationToken);
-        await EnsureCmcKnowledgeDocumentMetadataAsync(cancellationToken);
+        await RemoveLegacySeedKnowledgeDocumentAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -487,8 +492,8 @@ public sealed class DatabaseSeeder(
             ("phuong_thuc", "Đại học CMC có những phương thức xét tuyển nào năm 2026?", "Năm 2026, Trường Đại học CMC công bố 4 phương thức: CMC401 xét CMC-TEST, CMC200 xét kết quả học tập THPT, CMC100 xét kết quả thi tốt nghiệp THPT và CMC303 xét tuyển thẳng."),
             ("ho_so", "Hồ sơ xét tuyển trực tuyến Đại học CMC gồm những gì?", "Hồ sơ trực tuyến gồm bản PDF hoặc ảnh kết quả học tập THPT, CCCD, chứng chỉ ngoại ngữ/chứng nhận ưu tiên nếu có, bằng tốt nghiệp THPT đối với thí sinh đã tốt nghiệp trước năm 2026 và giấy chứng nhận thành tích nếu đăng ký xét tuyển thẳng."),
             ("hoc_phi", "Học phí Đại học CMC năm 2026 được tính như thế nào?", "Học phí CMCU 2026 được công bố theo từng học kỳ. Nhóm Máy tính và Công nghệ thông tin cùng Công nghệ kỹ thuật có mức 14.742.000, 18.018.000 và 21.840.000 VNĐ/kỳ theo các giai đoạn học kỳ 1-3, 4-6, 7-9. Nhóm Kinh doanh, Truyền thông, Nghệ thuật có mức 13.608.000, 16.632.000 và 20.160.000 VNĐ/kỳ. Nhóm Ngôn ngữ có mức 12.474.000, 15.246.000 và 18.480.000 VNĐ/kỳ."),
-            ("chi_tieu", "Chỉ tiêu tuyển sinh Đại học CMC năm 2026 là bao nhiêu?", "Thông tin tuyển sinh CMCU 2026 công bố chỉ tiêu tại Hà Nội là 1.800 sinh viên và tại TP.HCM là 800 sinh viên; tổng chỉ tiêu 2.600."),
-            ("diem_chuan", "Điểm chuẩn Đại học CMC năm 2026 đã có chưa?", "Điểm chuẩn/trúng tuyển năm 2026 chưa phải dữ liệu có sẵn ở thời điểm xây dựng hệ thống. Hệ thống không tự bịa điểm chuẩn; khi trường công bố, quản trị viên có thể nhập vào cổng quản trị."),
+            ("chi_tieu", "Chỉ tiêu tuyển sinh Đại học CMC năm 2026 là bao nhiêu?", "Bảng ngành/chương trình tuyển sinh 2026 ghi tổng chỉ tiêu 2.315, trong khi một ô tổng quan trên cùng trang ghi 2.300. Thí sinh nên xác nhận với Phòng Tuyển sinh nếu cần dùng con số trong hồ sơ chính thức."),
+            ("diem_chuan", "Điểm chuẩn Đại học CMC năm 2026 đã có chưa?", "Ngày 10/07/2026, Trường Đại học CMC đã công bố điểm sàn nộp hồ sơ và bảng quy đổi giữa các phương thức. Điểm sàn không phải điểm chuẩn trúng tuyển; hệ thống không tự bịa điểm chuẩn khi chưa có thông báo chính thức."),
             ("le_phi", "Lệ phí xét tuyển Đại học CMC năm 2026 là bao nhiêu?", "Theo thông tin tuyển sinh CMCU 2026, phí đăng ký thi CMC-TEST là miễn phí, phí đăng ký xét tuyển là 50.000 VNĐ/thí sinh và phí giữ học bổng, ưu đãi là 5.000.000 VNĐ/thí sinh nếu thuộc diện được cấp học bổng, ưu đãi."),
             ("thoi_gian", "Thời gian đăng ký hồ sơ Đại học CMC năm 2026 là khi nào?", "Với phương thức 1, 2 và 4, thí sinh đăng ký hồ sơ tại Trường Đại học CMC từ 01/03 đến 30/06/2026; đăng ký nguyện vọng trên hệ thống của Bộ GD&ĐT từ 02/07 đến 14/07/2026; xét bổ sung nếu có từ 22/08/2026."),
         };
@@ -509,111 +514,22 @@ public sealed class DatabaseSeeder(
         }
     }
 
-    private async Task EnsureCmcKnowledgeDocumentMetadataAsync(CancellationToken cancellationToken)
+    private async Task RemoveLegacySeedKnowledgeDocumentAsync(CancellationToken cancellationToken)
     {
         const string title = "Nguồn tuyển sinh CMCU 2026 - bản tóm tắt seed";
-        var document = await dbContext.KnowledgeDocuments
-            .Include(x => x.Versions)
-            .ThenInclude(x => x.Chunks)
-            .FirstOrDefaultAsync(x => x.Title == title, cancellationToken);
-
-        if (document is null)
-        {
-            document = new KnowledgeDocument
-            {
-                Title = title,
-                DocumentType = "admission_notice",
-                Source = "https://cmcu.edu.vn/dai-hoc-cmc/; https://cmcu.edu.vn/gioi-thieu/; https://cmcu.edu.vn/thong-tin-tuyen-sinh/; https://cmcu.edu.vn/hoc-phi/; https://cmcu.edu.vn/chinh-sach-hoc-bong/; https://cmcu.edu.vn/cau-hoi-thuong-gap/; https://cmcu.edu.vn/giang-vien/; https://cmcu.edu.vn/lien-he/",
-                Status = "completed",
-            };
-
-            var version = new DocumentVersion
-            {
-                Document = document,
-                VersionNo = 1,
-                FileName = "cmcu_admissions_2026_seed.md",
-                FilePath = "docs/source_materials/cmcu_admissions_2026.md",
-                FileType = ".md",
-                ContentType = "text/markdown",
-                FileSizeBytes = 0,
-                ProcessingStatus = "completed",
-            };
-
-            dbContext.KnowledgeDocuments.Add(document);
-            dbContext.DocumentVersions.Add(version);
-            dbContext.DocumentChunks.AddRange(BuildSeedChunks(version));
-        }
-        else
-        {
-            document.DocumentType = "admission_notice";
-            document.Source = "https://cmcu.edu.vn/dai-hoc-cmc/; https://cmcu.edu.vn/gioi-thieu/; https://cmcu.edu.vn/thong-tin-tuyen-sinh/; https://cmcu.edu.vn/hoc-phi/; https://cmcu.edu.vn/chinh-sach-hoc-bong/; https://cmcu.edu.vn/cau-hoi-thuong-gap/; https://cmcu.edu.vn/giang-vien/; https://cmcu.edu.vn/lien-he/";
-            document.Status = "completed";
-            document.UpdatedAt = DateTime.UtcNow;
-
-            var version = document.Versions.OrderByDescending(x => x.VersionNo).FirstOrDefault();
-            if (version is not null && !version.Chunks.Any(x => x.Content.Contains("26/07/2022", StringComparison.OrdinalIgnoreCase)))
-            {
-                var nextIndex = version.Chunks.Count == 0 ? 0 : version.Chunks.Max(x => x.ChunkIndex) + 1;
-                dbContext.DocumentChunks.AddRange(BuildSupplementSeedChunks(version, nextIndex));
-            }
-        }
-    }
-
-    private static IReadOnlyCollection<DocumentChunk> BuildSeedChunks(DocumentVersion version)
-    {
-        var chunks = new[]
-        {
-            "Trường Đại học CMC có mã trường CMC. Thông tin tuyển sinh đại học chính quy năm 2026 công bố chỉ tiêu tại Hà Nội 1.800 sinh viên, tại TP.HCM 800 sinh viên, tổng 2.600 chỉ tiêu.",
-            "Phương thức tuyển sinh 2026 của Trường Đại học CMC gồm CMC401 xét kỳ thi CMC-TEST, CMC200 xét kết quả học tập THPT, CMC100 xét kết quả thi tốt nghiệp THPT và CMC303 xét tuyển thẳng.",
-            "Hồ sơ xét tuyển trực tuyến gồm bản PDF hoặc ảnh kết quả học tập THPT, CCCD, chứng chỉ ngoại ngữ hoặc chứng nhận ưu tiên nếu có, bằng tốt nghiệp THPT nếu đã tốt nghiệp trước năm 2026 và giấy chứng nhận thành tích nếu xét tuyển thẳng.",
-            "Học phí CMCU 2026 theo học kỳ: nhóm Máy tính và Công nghệ thông tin cùng Công nghệ kỹ thuật là 14.742.000, 18.018.000, 21.840.000 VNĐ/kỳ theo các giai đoạn học kỳ 1-3, 4-6, 7-9.",
-            "Học phí CMCU 2026 theo học kỳ: nhóm Kinh doanh và Quản lý, Báo chí và Truyền thông, Nghệ thuật là 13.608.000, 16.632.000, 20.160.000 VNĐ/kỳ; nhóm Nhân văn là 12.474.000, 15.246.000, 18.480.000 VNĐ/kỳ.",
-            "Quỹ học bổng, ưu đãi CMC - Vì bạn xứng đáng năm 2026 trị giá 96 tỷ đồng. Trường công bố tặng iPad hoặc máy tính bảng tương đương cho 100% tân sinh viên nhập học năm 2026 nếu đáp ứng điều kiện.",
-            "Trường Đại học CMC là thành viên thuộc Khối Nghiên cứu và Giáo dục của Tập đoàn Công nghệ CMC. Ngày 26/07/2022, Trường Đại học CMC chính thức được đổi tên theo Quyết định số 895/QĐ-TTg của Thủ tướng Chính phủ. Ngày 22/07/2024, Trường công bố chiến lược chuyển đổi AI University.",
-            "Đội ngũ giảng viên tiêu biểu của Trường Đại học CMC gồm PGS. TS. Nguyễn Thanh Tùng - Hiệu trưởng; PGS. TS. Nguyễn Hữu Quỳnh - Phó Hiệu trưởng; PGS. TS. Vũ Việt Vũ - Trưởng Khoa Công nghệ Thông tin & Truyền thông; PGS. TS. Trương Anh Hoàng, TS. Phạm Thị Anh Lê, TS. Hoàng Tiểu Bình, TS. Ngô Minh Thành, TS. Nguyễn Ngọc Tân; TS. Lê Tiến Trung - Trưởng Khoa Kinh doanh & Quản lý; TS. Đặng Minh Tuấn - Trưởng Khoa Vi điện tử & Viễn thông.",
-            "Liên hệ tuyển sinh Trường Đại học CMC: tuyensinh@cmcu.edu.vn, 024 7102 9999. Trụ sở chính tại CMC Tower, số 11 Duy Tân, Cầu Giấy, Hà Nội. Cơ sở 1 tại số 84C Nguyễn Thanh Bình, Hà Đông; cơ sở 2 tại Vạn Phúc Building, đường Tố Hữu, Hà Đông; cơ sở 3 tại Tây Mỗ, Xuân Phương, Hà Nội; cơ sở Tân Thuận tại CMC Creative Space, đường số 19, Khu chế xuất Tân Thuận, TP. Hồ Chí Minh.",
-        };
-
-        return chunks.Select((content, index) => new DocumentChunk
-        {
-            DocumentVersion = version,
-            ChunkIndex = index,
-            SectionTitle = "Tóm tắt tuyển sinh CMCU 2026",
-            Content = content,
-            TokenCount = content.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length,
-            IsActive = true,
-            MetadataJson = "{\"source\":\"cmcu.edu.vn\"}",
-        }).ToList();
-    }
-
-    private static IReadOnlyCollection<DocumentChunk> BuildSupplementSeedChunks(DocumentVersion version, int startIndex)
-    {
-        var chunks = new[]
-        {
-            "Trường Đại học CMC là thành viên thuộc Khối Nghiên cứu và Giáo dục của Tập đoàn Công nghệ CMC. Ngày 26/07/2022, Trường Đại học CMC chính thức được đổi tên theo Quyết định số 895/QĐ-TTg của Thủ tướng Chính phủ. Ngày 22/07/2024, Trường công bố chiến lược chuyển đổi AI University.",
-            "Đội ngũ giảng viên tiêu biểu của Trường Đại học CMC gồm PGS. TS. Nguyễn Thanh Tùng - Hiệu trưởng; PGS. TS. Nguyễn Hữu Quỳnh - Phó Hiệu trưởng; PGS. TS. Vũ Việt Vũ - Trưởng Khoa Công nghệ Thông tin & Truyền thông; PGS. TS. Trương Anh Hoàng, TS. Phạm Thị Anh Lê, TS. Hoàng Tiểu Bình, TS. Ngô Minh Thành, TS. Nguyễn Ngọc Tân; TS. Lê Tiến Trung - Trưởng Khoa Kinh doanh & Quản lý; TS. Đặng Minh Tuấn - Trưởng Khoa Vi điện tử & Viễn thông.",
-            "Liên hệ tuyển sinh Trường Đại học CMC: tuyensinh@cmcu.edu.vn, 024 7102 9999. Trụ sở chính tại CMC Tower, số 11 Duy Tân, Cầu Giấy, Hà Nội. Cơ sở 1 tại số 84C Nguyễn Thanh Bình, Hà Đông; cơ sở 2 tại Vạn Phúc Building, đường Tố Hữu, Hà Đông; cơ sở 3 tại Tây Mỗ, Xuân Phương, Hà Nội; cơ sở Tân Thuận tại CMC Creative Space, đường số 19, Khu chế xuất Tân Thuận, TP. Hồ Chí Minh.",
-        };
-
-        return chunks.Select((content, index) => new DocumentChunk
-        {
-            DocumentVersion = version,
-            DocumentVersionId = version.Id,
-            ChunkIndex = startIndex + index,
-            SectionTitle = "Bổ sung tổng quan Trường Đại học CMC",
-            Content = content,
-            TokenCount = content.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length,
-            IsActive = true,
-            MetadataJson = "{\"source\":\"cmcu.edu.vn\"}",
-        }).ToList();
+        var legacyDocuments = await dbContext.KnowledgeDocuments
+            .Where(x => x.Title == title)
+            .ToListAsync(cancellationToken);
+        dbContext.KnowledgeDocuments.RemoveRange(legacyDocuments);
     }
 
     private static string BuildMajorDescription(CmcProgramSeed seed)
     {
         var planned = seed.IsPlanned2026 ? " Đây là ngành/chương trình dự kiến mở năm 2026 theo bảng thông tin tuyển sinh CMCU." : "";
         var subtitle = string.IsNullOrWhiteSpace(seed.Subtitle) ? "" : $" Định hướng: {seed.Subtitle}.";
-        return $"{seed.DisplayName} thuộc nhóm {seed.GroupName} của Trường Đại học CMC. Chỉ tiêu năm 2026 tại Hà Nội: {seed.HanoiQuota}." +
-               $"{(seed.HoChiMinhQuota is null ? "" : $" Chỉ tiêu tại TP.HCM: {seed.HoChiMinhQuota}.")}{subtitle}{planned}";
+        var campuses = seed.HoChiMinhQuota is null ? "Hà Nội" : "Hà Nội và TP. Hồ Chí Minh";
+        return $"{seed.DisplayName} thuộc nhóm {seed.GroupName} của Trường Đại học CMC và được công bố tuyển sinh tại {campuses}." +
+               $"{subtitle}{planned} Chỉ tiêu chi tiết có thể được nhà trường điều chỉnh; cần đối chiếu bảng tuyển sinh chính thức mới nhất.";
     }
 
     private static string BuildProgramDescription(CmcProgramSeed seed)
