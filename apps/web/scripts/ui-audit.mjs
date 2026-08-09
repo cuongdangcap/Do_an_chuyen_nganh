@@ -126,7 +126,7 @@ async function shot(page, name) {
 
 async function openPortal(page) {
   await page.goto(baseURL, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Trợ lý AI", exact: true }).waitFor();
+  await page.getByRole("heading", { name: /Xin chào/ }).waitFor();
 }
 
 async function auditViewport(browser, viewport, suffix) {
@@ -135,7 +135,7 @@ async function auditViewport(browser, viewport, suffix) {
   await installMocks(page);
 
   await page.goto(baseURL, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Đăng nhập người học" }).click();
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await page.getByRole("heading", { name: "Đăng nhập sinh viên" }).waitFor();
   await assertLayout(page, `login-student-${suffix}`);
   await shot(page, `login-student-${suffix}`);
@@ -147,16 +147,16 @@ async function auditViewport(browser, viewport, suffix) {
   await shot(page, `login-admin-${suffix}`);
 
   await openPortal(page);
-  for (const tab of ["Trợ lý AI", "Ngành đào tạo", "So sánh", "FAQ"]) {
+  for (const tab of ["Trợ lý AI", "Ngành đào tạo", "So sánh", "Câu hỏi thường gặp"]) {
     await page.getByRole("button", { name: new RegExp(`^${tab}`) }).first().click();
     await page.waitForTimeout(100);
     await assertLayout(page, `portal-${tab}-${suffix}`);
     await shot(page, `portal-${tab.toLowerCase().replaceAll(" ", "-")}-${suffix}`);
   }
 
-  await page.getByRole("button", { name: "Đăng nhập người học" }).click();
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-  await page.getByRole("button", { name: "Hồ sơ", exact: true }).click();
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await page.getByRole("button", { name: "Nguyễn Minh Anh", exact: true }).click();
   await assertLayout(page, `member-profile-${suffix}`);
   await shot(page, `member-profile-${suffix}`);
 
@@ -165,8 +165,7 @@ async function auditViewport(browser, viewport, suffix) {
     localStorage.removeItem("admissions_member_token");
   });
   await page.reload({ waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Cổng quản trị", exact: true }).click();
-  await page.getByRole("button", { name: "Vào cổng quản trị", exact: true }).click();
+  await page.getByRole("button", { name: "Quản trị", exact: true }).click();
   for (const tab of ["Tổng quan", "Tài khoản", "RAG & hỗ trợ", "Đánh giá", "Dữ liệu tuyển sinh"]) {
     await page.getByRole("button", { name: tab, exact: true }).click();
     await page.waitForTimeout(120);

@@ -845,19 +845,26 @@ function App() {
         />
       ) : (
         <>
-      <Header
-        view={view}
-        setView={setView}
-        status={status}
-        adminUser={adminUser}
-        memberUser={memberUser}
-        onOpenAuth={openAuth}
-        onLogout={logout}
-        onMemberLogout={logoutMember}
-      />
+      {view !== "portal" ? (
+        <Header
+          view={view}
+          setView={setView}
+          status={status}
+          adminUser={adminUser}
+          memberUser={memberUser}
+          onOpenAuth={openAuth}
+          onLogout={logout}
+          onMemberLogout={logoutMember}
+        />
+      ) : null}
       {view === "portal" ? (
         <PortalView
           memberUser={memberUser}
+          adminUser={adminUser}
+          setView={setView}
+          onOpenAuth={openAuth}
+          onLogout={logout}
+          onMemberLogout={logoutMember}
           data={data}
           filters={filters}
           setFilters={setFilters}
@@ -1120,6 +1127,11 @@ function Header({ view, setView, status, adminUser, memberUser, onOpenAuth, onLo
 
 function PortalView({
   memberUser,
+  adminUser,
+  setView,
+  onOpenAuth,
+  onLogout,
+  onMemberLogout,
   data,
   filters,
   setFilters,
@@ -1148,46 +1160,47 @@ function PortalView({
 }) {
   const [portalTab, setPortalTab] = useState("chat");
   const portalItems = [
-    { id: "chat", label: "Trợ lý AI", description: "Hỏi đáp tuyển sinh" },
-    { id: "majors", label: "Ngành đào tạo", description: "Tra cứu chương trình" },
-    { id: "compare", label: "So sánh", description: "Đối chiếu học phí" },
-    { id: "faq", label: "FAQ", description: "Câu hỏi thường gặp" },
+    { id: "chat", label: "Trợ lý AI" },
+    { id: "majors", label: "Ngành đào tạo" },
+    { id: "compare", label: "So sánh" },
+    { id: "faq", label: "Câu hỏi thường gặp" },
   ];
 
   return (
-    <div className="portal-shell">
-      <aside className="portal-rail">
-        <div className="portal-rail-head">
-          <div className="rail-brand"><span className="brand-mark small" aria-hidden="true">C</span><p className="eyebrow">CMCU Portal</p></div>
-          <h2>{memberUser ? "Không gian tư vấn của bạn" : "Cổng tư vấn tuyển sinh"}</h2>
-          <p>{memberUser ? `${memberUser.fullName} đang đăng nhập.` : "Hỏi AI trước, tra cứu chi tiết khi cần."}</p>
-        </div>
-
-        <nav className="portal-service-nav" aria-label="Dịch vụ tư vấn">
+    <div className={`cmc-portal ${portalTab === "chat" ? "is-chat" : "is-service"}`}>
+      <header className="cmc-portal-header">
+        <button className="cmc-wordmark" type="button" onClick={() => setPortalTab("chat")} aria-label="Về Trợ lý tuyển sinh CMCU">
+          <span className="cmc-symbol" aria-hidden="true"><i /><i /><i /></span>
+          <span><strong>CMC</strong><small>UNIVERSITY</small></span>
+        </button>
+        <nav className="cmc-portal-nav" aria-label="Dịch vụ tư vấn">
           {portalItems.map((item) => (
             <button key={item.id} className={portalTab === item.id ? "active" : ""} type="button" onClick={() => setPortalTab(item.id)}>
-              <strong>{item.label}</strong>
-              <span>{item.description}</span>
+              {item.label}
             </button>
           ))}
         </nav>
-
-        <div className="portal-mini-stats">
-          <Metric label="Ngành" value={data.majors.totalItems ?? data.majors.items.length} />
-          <Metric label="Khoa" value={data.faculties.length} />
+        <div className="cmc-portal-account">
+          {memberUser ? (
+            <>
+              <button className="cmc-account-button" type="button" onClick={() => setView("member")}>{memberUser.fullName}</button>
+              <button className="cmc-icon-button" type="button" onClick={onMemberLogout} aria-label="Đăng xuất">↗</button>
+            </>
+          ) : adminUser ? (
+            <>
+              <button className="cmc-account-button" type="button" onClick={() => setView("admin")}>Quản trị</button>
+              <button className="cmc-icon-button" type="button" onClick={onLogout} aria-label="Đăng xuất">↗</button>
+            </>
+          ) : (
+            <>
+              <button className="cmc-login-link" type="button" onClick={() => onOpenAuth("student")}>Đăng nhập</button>
+              <button className="cmc-admin-link" type="button" onClick={() => onOpenAuth("admin")}>Quản trị</button>
+            </>
+          )}
         </div>
-      </aside>
+      </header>
 
-      <section className="portal-workspace">
-        <div className="portal-workspace-head">
-          <div>
-            <p className="eyebrow">{portalTab === "chat" ? "Trợ lý tuyển sinh" : "Dịch vụ tra cứu"}</p>
-            <h2>{portalItems.find((item) => item.id === portalTab)?.label}</h2>
-          </div>
-          <span className="pill">{memberUser ? "Đã đăng nhập" : "Khách vãng lai"}</span>
-        </div>
-
-        {portalTab === "chat" ? (
+      {portalTab === "chat" ? (
           <RagChatPanel
             question={ragQuestion}
             setQuestion={setRagQuestion}
@@ -1203,7 +1216,15 @@ function PortalView({
             onSelectConversation={onSelectConversation}
             onNewConversation={onNewConversation}
           />
-        ) : null}
+      ) : (
+        <section className="cmc-service-workspace">
+          <div className="cmc-service-heading">
+            <div>
+              <p className="eyebrow">Cổng thông tin tuyển sinh</p>
+              <h1>{portalItems.find((item) => item.id === portalTab)?.label}</h1>
+            </div>
+            <span>{data.majors.totalItems ?? data.majors.items.length} ngành · {data.faculties.length} khoa</span>
+          </div>
 
         {portalTab === "majors" ? (
           <MajorsExplorer
@@ -1228,7 +1249,8 @@ function PortalView({
         ) : null}
 
         {portalTab === "faq" ? <FaqPanel faqs={data.faqs} /> : null}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
@@ -1608,88 +1630,112 @@ function RagChatPanel({
   }
 
   return (
-    <section className="rag-chat-panel">
-      <div className="section-title">
-        <div>
-          <h2>Xin chào, mình có thể giúp gì cho bạn?</h2>
-          <p>Hỏi về ngành học, học phí, phương thức xét tuyển hoặc hồ sơ tại Đại học CMC.</p>
+    <section className="rag-chat-panel cmc-chat-workspace">
+      <aside className="chat-history">
+        <div className="chat-history-head">
+          <div>
+            <span className="chat-panel-kicker">HỘI THOẠI</span>
+            <h2>Lịch sử chat</h2>
+          </div>
+          <button className="chat-new-icon" type="button" onClick={onNewConversation} aria-label="Tạo cuộc trò chuyện mới">＋</button>
         </div>
-        {chat?.backend ? <span className="pill">{chat.backend}</span> : null}
-      </div>
-
-      <div className="question-suggestions">
-        {[
-          "Trường thành lập năm nào?",
-          "Hồ sơ xét tuyển trực tuyến gồm những gì?",
-          "Học phí ngành Trí tuệ Nhân tạo là bao nhiêu?",
-          "Đại học CMC có những phương thức xét tuyển nào?",
-        ].map((suggestion) => (
-          <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
-            {suggestion}
-          </button>
-        ))}
-      </div>
-
-      <div className="rag-chat-layout">
-        <aside className="chat-history">
-          <button className="primary-button compact" type="button" onClick={onNewConversation}>
-            Chat mới
-          </button>
-          <div className="chat-history-list">
-            {conversations.items.length ? (
-              conversations.items.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  className={activeConversationId === conversation.id ? "active" : ""}
-                  type="button"
-                  onClick={() => onSelectConversation(conversation.id)}
-                >
+        <button className="chat-new-button" type="button" onClick={onNewConversation}>
+          <span>＋</span> Cuộc trò chuyện mới
+        </button>
+        <div className="chat-history-list">
+          {conversations.items.length ? (
+            conversations.items.map((conversation, index) => (
+              <button
+                key={conversation.id}
+                className={activeConversationId === conversation.id ? "active" : ""}
+                type="button"
+                onClick={() => onSelectConversation(conversation.id)}
+              >
+                <span className="chat-history-icon" aria-hidden="true">{index === 0 ? "✦" : "○"}</span>
+                <span>
                   <strong>{conversation.title}</strong>
                   <small>{conversation.lastMessagePreview || "Chưa có tin nhắn"}</small>
-                </button>
-              ))
-            ) : (
-              <small>Chưa có lịch sử chat.</small>
-            )}
-          </div>
-        </aside>
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="chat-history-empty"><span>◌</span><small>Các cuộc trò chuyện sẽ xuất hiện tại đây.</small></div>
+          )}
+        </div>
+        <div className="chat-history-footer">
+          <span className="cmc-online-dot" />
+          <span>Trợ lý đang trực tuyến</span>
+        </div>
+      </aside>
 
-        <div className="chat-surface">
-          <div className="chat-messages">
-            {displayMessages.length ? (
-              displayMessages.map((message) => (
-                <article key={message.id} className={`chat-message ${message.role}`}>
-                  <strong>{message.role === "user" ? "Bạn" : "Trợ lý"}</strong>
+      <div className={`chat-surface ${displayMessages.length ? "has-messages" : "is-empty"}`}>
+        <div className="chat-messages">
+          {displayMessages.length ? (
+            displayMessages.map((message) => (
+              <article key={message.id} className={`chat-message ${message.role}`}>
+                <div className="chat-message-avatar" aria-hidden="true">{message.role === "user" ? "B" : "✦"}</div>
+                <div>
+                  <strong>{message.role === "user" ? "Bạn" : "CMCU AI"}</strong>
                   <p>{message.content}</p>
-                </article>
-              ))
-            ) : (
-              <EmptyState text="Đặt câu hỏi đầu tiên để bắt đầu hội thoại." />
-            )}
-          </div>
-
-          <form className="rag-chat-form" onSubmit={onSubmit}>
-            <div className="chat-input-stack">
-              <textarea
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Ví dụ: Hồ sơ xét tuyển gồm những gì?"
-                rows={3}
-              />
-              <label className="chat-file-input">
-                Tệp riêng
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.png,.jpg,.jpeg,.txt,.md"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                />
-                {file ? <span>{file.name}</span> : null}
-              </label>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="cmc-chat-welcome">
+              <div className="cmc-ai-orb" aria-hidden="true"><i /><i /><i /></div>
+              <span className="cmc-welcome-kicker">TRỢ LÝ TUYỂN SINH CMCU</span>
+              <h1>Xin chào! Mình có thể<br />giúp gì cho bạn?</h1>
+              <p>Thông tin tuyển sinh chính xác, dễ hiểu và luôn có nguồn kiểm chứng.</p>
+              <div className="question-suggestions">
+                {[
+                  ["Ngành đào tạo", "Đại học CMC có những ngành nào?", "↗"],
+                  ["Học phí", "Học phí ngành Trí tuệ Nhân tạo là bao nhiêu?", "₫"],
+                  ["Xét tuyển", "Có những phương thức xét tuyển nào?", "✓"],
+                  ["Hồ sơ", "Hồ sơ xét tuyển trực tuyến gồm những gì?", "▤"],
+                ].map(([label, suggestion, icon]) => (
+                  <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
+                    <span className="suggestion-icon">{icon}</span>
+                    <span><small>{label}</small><strong>{suggestion}</strong></span>
+                    <b aria-hidden="true">→</b>
+                  </button>
+                ))}
+              </div>
             </div>
-            <button className="primary-button" type="submit" disabled={loading}>
-              {loading ? "Đang hỏi..." : file ? "Hỏi theo tệp" : "Hỏi tài liệu"}
+          )}
+        </div>
+
+        <div className="cmc-composer-wrap">
+          <form className="rag-chat-form" onSubmit={onSubmit}>
+            <label className="chat-file-input" title="Đính kèm tệp riêng">
+              <span aria-hidden="true">⌕</span>
+              <span className="sr-only">Đính kèm tệp riêng</span>
+              <input
+                type="file"
+                accept=".pdf,.docx,.png,.jpg,.jpeg,.txt,.md"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              placeholder="Nhập câu hỏi tuyển sinh của bạn..."
+              rows={1}
+            />
+            <button className="chat-send-button" type="submit" disabled={loading || !question.trim()} aria-label="Gửi câu hỏi">
+              {loading ? <span className="chat-loader" /> : "↑"}
             </button>
           </form>
+          <div className="cmc-composer-meta">
+            <span>{file ? `Tệp đã chọn: ${file.name}` : "Có thể đính kèm PDF, DOCX hoặc hình ảnh"}</span>
+            <span>Enter để gửi · Shift + Enter để xuống dòng</span>
+          </div>
+        </div>
           {chat?.error ? <p className="rag-error">{chat.error}</p> : null}
           {chat?.answer ? (
             <div className="feedback-actions" aria-label="Đánh giá câu trả lời">
@@ -1745,40 +1791,47 @@ function RagChatPanel({
           {chat?.handoffTicketId ? (
             <p className="handoff-notice">Câu hỏi đã được chuyển cho tư vấn viên. Mã phiếu: {chat.handoffTicketId.slice(0, 8)}</p>
           ) : null}
-        </div>
-
-        <aside className="chat-sources" aria-label="Nguồn tham khảo">
-          <div className="chat-sources-head">
-            <div>
-              <span className="source-kicker">Kiểm chứng</span>
-              <h3>Nguồn tham khảo</h3>
-            </div>
-            <span className="source-count">{latestSources.length}</span>
-          </div>
-          <p className="chat-sources-intro">Các tài liệu được dùng cho câu trả lời gần nhất.</p>
-          <div className="source-list">
-            {latestSources.length ? latestSources.slice(0, 5).map((source, index) => (
-              <article key={source.id ?? source.pointId ?? index}>
-                <div className="source-index">{String(index + 1).padStart(2, "0")}</div>
-                <div>
-                  <strong>{source.title || "Tài liệu tuyển sinh"}</strong>
-                  <span>
-                    {source.pageNumber ? `Trang ${source.pageNumber}` : "Tài liệu nội bộ"}
-                    {source.score != null && Number.isFinite(Number(source.score)) ? ` · Điểm ${Number(source.score).toFixed(3)}` : ""}
-                  </span>
-                  {source.sectionTitle ? <small>{source.sectionTitle}</small> : null}
-                  {source.content ? (
-                    <details>
-                      <summary>Xem trích đoạn</summary>
-                      <p>{cleanSourceExcerpt(source.content)}</p>
-                    </details>
-                  ) : null}
-                </div>
-              </article>
-            )) : <EmptyState text="Nguồn sẽ xuất hiện sau khi trợ lý trả lời." />}
-          </div>
-        </aside>
       </div>
+
+      <aside className="chat-sources" aria-label="Nguồn tham khảo">
+        <div className="chat-sources-head">
+          <div>
+            <span className="chat-panel-kicker">KIỂM CHỨNG</span>
+            <h2>Nguồn tham khảo</h2>
+          </div>
+          <span className="source-count">{latestSources.length}</span>
+        </div>
+        <p className="chat-sources-intro">Tài liệu được sử dụng để xây dựng câu trả lời gần nhất.</p>
+        <div className="source-list">
+          {latestSources.length ? latestSources.slice(0, 5).map((source, index) => (
+            <article key={source.id ?? source.pointId ?? index}>
+              <div className="source-index">{String(index + 1).padStart(2, "0")}</div>
+              <div>
+                <span className="source-type">TÀI LIỆU CMCU</span>
+                <strong>{source.title || "Tài liệu tuyển sinh"}</strong>
+                <span>
+                  {source.pageNumber ? `Trang ${source.pageNumber}` : "Tài liệu nội bộ"}
+                  {source.score != null && Number.isFinite(Number(source.score)) ? ` · Độ khớp ${Math.round(Number(source.score) * 100)}%` : ""}
+                </span>
+                {source.sectionTitle ? <small>{source.sectionTitle}</small> : null}
+                {source.content ? (
+                  <details>
+                    <summary>Xem trích đoạn <b>↗</b></summary>
+                    <p>{cleanSourceExcerpt(source.content)}</p>
+                  </details>
+                ) : null}
+              </div>
+            </article>
+          )) : (
+            <div className="source-empty">
+              <div aria-hidden="true">⌘</div>
+              <strong>Chưa có nguồn</strong>
+              <p>Nguồn tham khảo sẽ xuất hiện sau khi trợ lý trả lời câu hỏi của bạn.</p>
+            </div>
+          )}
+        </div>
+        <div className="source-trust-note"><span>✓</span><p><strong>Nguồn tin cậy</strong><small>Dữ liệu chính thức từ Đại học CMC</small></p></div>
+      </aside>
     </section>
   );
 }
