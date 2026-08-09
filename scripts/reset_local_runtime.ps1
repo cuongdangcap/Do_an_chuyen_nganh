@@ -103,16 +103,39 @@ $login = Invoke-RestMethod `
     -ContentType "application/json" `
     -Body (@{ email = $AdminEmail; password = $AdminPassword } | ConvertTo-Json)
 $token = $login.data.accessToken
-$upload = & curl.exe --silent --show-error --fail-with-body `
-    -X POST "$ApiBaseUrl/api/admin/documents" `
-    -H "Authorization: Bearer $token" `
-    -F "title=Nguồn tuyển sinh CMCU 2026 - nguồn chính thức" `
-    -F "documentType=admission_notice" `
-    -F "source=https://tuyensinh.cmcu.edu.vn/" `
-    -F "processNow=true" `
-    -F "file=@$sourceFile;type=text/markdown"
-if ($LASTEXITCODE -ne 0) {
-    throw "Tai lieu chinh thuc khong duoc tai len thanh cong."
+Add-Type -AssemblyName System.Net.Http
+$httpClient = New-Object System.Net.Http.HttpClient
+$multipart = New-Object System.Net.Http.MultipartFormDataContent
+$fileStream = $null
+$fileContent = $null
+try {
+    $httpClient.DefaultRequestHeaders.Authorization =
+        New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $token)
+
+    $multipart.Add((New-Object System.Net.Http.StringContent("Nguồn tuyển sinh CMCU 2026 - nguồn chính thức")), "title")
+    $multipart.Add((New-Object System.Net.Http.StringContent("admission_notice")), "documentType")
+    $multipart.Add((New-Object System.Net.Http.StringContent("https://tuyensinh.cmcu.edu.vn/")), "source")
+    $multipart.Add((New-Object System.Net.Http.StringContent("true")), "processNow")
+
+    $fileStream = [System.IO.File]::OpenRead($sourceFile)
+    $fileContent = New-Object System.Net.Http.StreamContent($fileStream)
+    $fileContent.Headers.ContentType =
+        New-Object System.Net.Http.Headers.MediaTypeHeaderValue("text/markdown")
+    $multipart.Add($fileContent, "file", [System.IO.Path]::GetFileName($sourceFile))
+
+    $uploadResponse = $httpClient.PostAsync(
+        "$ApiBaseUrl/api/admin/documents",
+        $multipart
+    ).GetAwaiter().GetResult()
+    $upload = $uploadResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+    if (-not $uploadResponse.IsSuccessStatusCode) {
+        throw "Tai lieu chinh thuc khong duoc tai len thanh cong ($([int]$uploadResponse.StatusCode)): $upload"
+    }
+} finally {
+    if ($null -ne $fileContent) { $fileContent.Dispose() }
+    elseif ($null -ne $fileStream) { $fileStream.Dispose() }
+    $multipart.Dispose()
+    $httpClient.Dispose()
 }
 $uploadResult = $upload | ConvertFrom-Json
 if ($uploadResult.success -ne $true) {
