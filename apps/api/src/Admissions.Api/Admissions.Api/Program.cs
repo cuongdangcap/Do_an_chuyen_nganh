@@ -5,6 +5,7 @@ using Admissions.Api.Middleware;
 using Admissions.Infrastructure;
 using Admissions.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -88,11 +89,14 @@ static async Task SeedDatabaseAsync(WebApplication app)
     var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseSeeder");
     try
     {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AdmissionsDbContext>();
+        await dbContext.Database.EnsureCreatedAsync();
+
         var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
         await seeder.SeedAsync();
     }
     catch (Exception ex)
     {
-        logger.LogWarning(ex, "Database seed skipped. Start SQL Server and run the app again to seed roles/admin.");
+        logger.LogWarning(ex, "Database initialization skipped. Start SQL Server and run the app again to create the schema and seed roles/admin.");
     }
 }
