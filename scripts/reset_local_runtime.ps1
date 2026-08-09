@@ -74,6 +74,10 @@ try {
 }
 
 Write-Host "Starting the clean application..."
+# Keep the API seed credentials aligned with the credentials used below for indexing.
+# Explicit parameters win over any stale SeedAdmin__* variables in the caller environment.
+$env:SeedAdmin__Email = $AdminEmail
+$env:SeedAdmin__Password = $AdminPassword
 & (Join-Path $PSScriptRoot "start_local_runtime.ps1") -QdrantCollection $QdrantCollection
 
 Write-Host "Waiting for the API and AI service..."
