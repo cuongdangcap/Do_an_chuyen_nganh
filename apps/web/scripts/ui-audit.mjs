@@ -126,6 +126,10 @@ async function shot(page, name) {
 
 async function openPortal(page) {
   await page.goto(baseURL, { waitUntil: "networkidle" });
+  const guestButton = page.getByRole("button", { name: "Hỏi AI ngay", exact: true });
+  if (await guestButton.isVisible()) {
+    await guestButton.click();
+  }
   await page.getByRole("heading", { name: /Xin chào/ }).waitFor();
 }
 
