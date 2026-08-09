@@ -1707,7 +1707,7 @@ function RagChatPanel({
         <div className="cmc-composer-wrap">
           <form className="rag-chat-form" onSubmit={onSubmit}>
             <label className="chat-file-input" title="Đính kèm tệp riêng">
-              <span aria-hidden="true">⌕</span>
+              <span aria-hidden="true">📎</span>
               <span className="sr-only">Đính kèm tệp riêng</span>
               <input
                 type="file"
