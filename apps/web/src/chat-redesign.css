@@ -313,11 +313,11 @@
   box-shadow: none !important;
 }
 
-.cmc-chat-workspace .chat-message.user { justify-self: end; }
+.cmc-chat-workspace .chat-message.user { grid-template-columns: minmax(0, 1fr) 32px; justify-self: end; }
 .chat-message-avatar { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: #191a1e; color: #fff; font-size: .67rem; font-weight: 850; }
 .chat-message.assistant .chat-message-avatar { background: var(--cmc-red); }
-.chat-message.user .chat-message-avatar { order: 2; background: #ececef; color: #53545b; }
-.chat-message.user > div:last-child { order: 1; justify-items: end; }
+.chat-message.user .chat-message-avatar { grid-column: 2; grid-row: 1; background: #ececef; color: #53545b; }
+.chat-message.user > div:last-child { grid-column: 1; grid-row: 1; justify-items: end; }
 .cmc-chat-workspace .chat-message > div:last-child { display: grid; gap: 6px; }
 .cmc-chat-workspace .chat-message strong { color: #8b8c92 !important; font-size: .61rem !important; letter-spacing: .08em; text-transform: uppercase; }
 .cmc-chat-workspace .chat-message p { margin: 0; padding: 12px 14px; border: 1px solid #ececef; border-radius: 4px 14px 14px 14px; background: #fafafa; color: #3e3f45 !important; font-size: .83rem; line-height: 1.65; white-space: pre-wrap; }
@@ -342,7 +342,7 @@
 .cmc-chat-workspace .rag-chat-form textarea:focus { outline: none; }
 .cmc-chat-workspace .rag-chat-form textarea::placeholder { color: #a0a1a7; }
 .cmc-chat-workspace .chat-file-input { display: grid !important; width: 39px; min-height: 39px !important; place-items: center; padding: 0 !important; border-radius: 10px; color: #777880; cursor: pointer; }
-.cmc-chat-workspace .chat-file-input:hover { background: #f4f4f5; color: var(--cmc-red); }
+.cmc-chat-workspace .chat-file-input:hover { background: #f4f4f5; color: var(--cmc-red); }\n.cmc-chat-workspace .chat-file-input::after { display: none; content: none; }
 .cmc-chat-workspace .chat-file-input > span:first-child { font-size: 1.18rem; transform: rotate(-35deg); }
 .cmc-chat-workspace .chat-file-input input { position: absolute; width: 1px !important; height: 1px !important; min-height: 0 !important; overflow: hidden; opacity: 0; pointer-events: none; }
 .chat-send-button { display: grid; width: 43px; min-height: 43px; place-items: center; border: 0; border-radius: 13px; background: var(--cmc-red); color: #fff; font-size: 1.1rem; font-weight: 900; }
