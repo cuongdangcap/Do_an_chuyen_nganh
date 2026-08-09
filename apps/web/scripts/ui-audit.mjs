@@ -130,7 +130,7 @@ async function openPortal(page) {
   if (await guestButton.isVisible()) {
     await guestButton.click();
   }
-  await page.getByRole("heading", { name: /Xin chào/ }).waitFor();
+  await page.getByRole("button", { name: "Trợ lý AI", exact: true }).waitFor();
 }
 
 async function auditViewport(browser, viewport, suffix) {
