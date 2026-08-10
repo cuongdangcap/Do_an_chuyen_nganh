@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
+import AdminAccountTools from "./AdminAccountTools.jsx";
 import "./styles.css";
 import "./ux.css";
 import "./login.css";
@@ -13,5 +14,6 @@ import "./cmc-theme.css";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
+    <AdminAccountTools />
   </React.StrictMode>,
 );
