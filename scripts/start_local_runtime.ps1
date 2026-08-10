@@ -5,7 +5,11 @@ param(
     [string]$WebHost = "127.0.0.1",
     [int]$WebPort = 5173,
     [string]$OllamaBaseUrl = "http://127.0.0.1:11434/v1",
-    [string]$OllamaModel = "qwen2.5:3b"
+    [string]$OllamaModel = "qwen2.5:3b",
+    [string]$QdrantCollection = "admissions_docs_e5_v1",
+    [string]$EmbeddingProvider = "sentence-transformers",
+    [string]$EmbeddingModel = "intfloat/multilingual-e5-small",
+    [int]$EmbeddingDimension = 384
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,11 +21,17 @@ sqllocaldb start AdmissionsLocal | Out-Null
 Write-Host "Starting Qdrant..."
 & (Join-Path $PSScriptRoot "start_qdrant.ps1")
 
-Write-Host "Starting AI service..."
+Write-Host "Starting AI service with semantic embeddings..."
 $env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"
 $env:TESSDATA_DIR = Join-Path $root "apps/ai-service/tessdata"
 $env:LOCAL_VECTOR_STORE = Join-Path $root "apps/ai-service/.local-vector-store.json"
 $env:QDRANT_URL = "http://127.0.0.1:6333"
+$env:QDRANT_COLLECTION = $QdrantCollection
+$env:QDRANT_TIMEOUT_SECONDS = "8"
+$env:QDRANT_SCORE_THRESHOLD = "0.20"
+$env:EMBEDDING_PROVIDER = $EmbeddingProvider
+$env:EMBEDDING_MODEL = $EmbeddingModel
+$env:EMBEDDING_DIMENSION = "$EmbeddingDimension"
 Start-Process `
     -FilePath (Join-Path $root "apps/ai-service/.venv/Scripts/python.exe") `
     -ArgumentList @("-m", "uvicorn", "app.main:app", "--host", $AiUrl, "--port", "$AiPort") `
@@ -38,6 +48,7 @@ $env:Llm__BaseUrl = $OllamaBaseUrl
 $env:Llm__ApiKey = "ollama"
 $env:Llm__Model = $OllamaModel
 $env:Llm__TimeoutSeconds = "120"
+$env:QDRANT_COLLECTION = $QdrantCollection
 $apiDll = Join-Path $env:TEMP "admissions-ai-build/solution/bin/Admissions.Api/debug/Admissions.Api.dll"
 Start-Process `
     -FilePath dotnet `
@@ -52,4 +63,5 @@ Start-Process `
     -WorkingDirectory (Join-Path $root "apps/web") `
     -WindowStyle Hidden | Out-Null
 
-Write-Host "Local runtime requested. Check status with scripts/check_ai_runtime.ps1."
+Write-Host "Local runtime requested with collection '$QdrantCollection' and model '$EmbeddingModel'."
+Write-Host "Check status with scripts/check_ai_runtime.ps1."

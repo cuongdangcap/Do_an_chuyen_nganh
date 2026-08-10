@@ -1,5 +1,5 @@
 import { HubConnectionBuilder, HubConnectionState, LogLevel } from "@microsoft/signalr";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
 
@@ -81,14 +81,14 @@ function App() {
   const [comparison, setComparison] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem("admissions_token") ?? "");
   const [adminUser, setAdminUser] = useState(null);
-  const [login, setLogin] = useState({ email: "admin@example.com", password: "Admin123456!" });
+  const [login, setLogin] = useState({ email: "admin@example.com", password: "" });
   const [memberToken, setMemberToken] = useState(() => localStorage.getItem("admissions_member_token") ?? "");
   const [memberUser, setMemberUser] = useState(null);
   const [memberMode, setMemberMode] = useState("student");
   const [memberAuthMode, setMemberAuthMode] = useState("login");
   const [memberForm, setMemberForm] = useState({
     email: "BIT240048@st.cmcu.edu.vn",
-    password: "Student123456!",
+    password: "",
     fullName: "Nguyễn Thu Hà",
     phone: "0900000000",
   });
@@ -105,7 +105,6 @@ function App() {
   const [users, setUsers] = useState({ items: [], totalItems: 0, page: 1, pageSize: 20, totalPages: 0 });
   const [userFilters, setUserFilters] = useState({ keyword: "", role: "", status: "" });
   const [documents, setDocuments] = useState({ items: [], totalItems: 0 });
-  const [documentChunks, setDocumentChunks] = useState([]);
   const [chatFeedbacks, setChatFeedbacks] = useState({ items: [], totalItems: 0 });
   const [chatFeedbackFilter, setChatFeedbackFilter] = useState("all");
   const [handoffTickets, setHandoffTickets] = useState({ items: [], totalItems: 0 });
@@ -116,17 +115,19 @@ function App() {
   const [evaluationQuestions, setEvaluationQuestions] = useState([]);
   const [evaluationRuns, setEvaluationRuns] = useState({ items: [], totalItems: 0 });
   const [latestEvaluationRun, setLatestEvaluationRun] = useState(null);
+  const evaluationAutomationToken = useRef("");
   const [documentUpload, setDocumentUpload] = useState({
     title: "",
     documentType: "regulation",
     source: "",
-    processNow: true,
     file: null,
   });
   const [status, setStatus] = useState({ loading: true, message: "Đang tải dữ liệu...", error: "" });
   const [clientSessionId] = useState(() => getClientSessionId());
   const [chatConversations, setChatConversations] = useState({ items: [], totalItems: 0 });
   const [activeConversationId, setActiveConversationId] = useState("");
+  const activeConversationIdRef = useRef("");
+  const shouldRestoreConversationRef = useRef(true);
   const [chatMessages, setChatMessages] = useState([]);
   const [ragQuestion, setRagQuestion] = useState("");
   const [ragFile, setRagFile] = useState(null);
@@ -161,7 +162,14 @@ function App() {
           refreshDocuments(token);
           refreshChatFeedbacks(token);
           refreshHandoffTickets(token);
-          refreshEvaluation(token);
+          if (evaluationAutomationToken.current !== token) {
+            evaluationAutomationToken.current = token;
+            ensureEvaluationReady(token).catch((error) => {
+              setStatus({ loading: false, message: "", error: `Không thể tự động đánh giá RAG: ${error.message}` });
+            });
+          } else {
+            refreshEvaluation(token);
+          }
           refreshDashboard(token);
           refreshAiStatus(token);
         })
@@ -190,7 +198,9 @@ function App() {
   }, [memberToken]);
 
   useEffect(() => {
+    activeConversationIdRef.current = "";
     setActiveConversationId("");
+    shouldRestoreConversationRef.current = true;
     setChatMessages([]);
     setRagChat(null);
     refreshChatConversations();
@@ -468,7 +478,7 @@ function App() {
       setMemberForm((current) => ({
         ...current,
         email: role === "student" ? "BIT240048@st.cmcu.edu.vn" : "phuhuynh@example.com",
-        password: role === "student" ? "Student123456!" : current.password,
+        password: "",
       }));
     }
     setView("login");
@@ -557,11 +567,42 @@ function App() {
     }
   }
 
+  async function ensureEvaluationReady(activeToken = token, forceRun = false) {
+    if (!activeToken) return;
+
+    let questions = await api("/api/admin/evaluation/questions?activeOnly=true", { token: activeToken });
+    if (questions.length === 0) {
+      await api("/api/admin/evaluation/questions/seed-defaults", {
+        method: "POST",
+        token: activeToken,
+      });
+      questions = await api("/api/admin/evaluation/questions?activeOnly=true", { token: activeToken });
+    }
+
+    const runs = await api("/api/admin/evaluation/runs?page=1&pageSize=1", { token: activeToken });
+    if (questions.length > 0 && (forceRun || !runs.items?.length)) {
+      await api("/api/admin/evaluation/runs", {
+        method: "POST",
+        token: activeToken,
+        body: JSON.stringify({ name: `Đánh giá tự động ${new Date().toLocaleString("vi-VN")}`, topK: 5 }),
+      });
+    }
+
+    await refreshEvaluation(activeToken);
+  }
+
   async function refreshChatConversations(activeToken = getChatAccessToken()) {
     const result = await api(`/api/chat/conversations?clientSessionId=${encodeURIComponent(clientSessionId)}&page=1&pageSize=20`, {
       token: activeToken || undefined,
     });
     setChatConversations(result);
+
+    if (shouldRestoreConversationRef.current && !activeConversationIdRef.current && result.items?.length) {
+      shouldRestoreConversationRef.current = false;
+      const savedId = localStorage.getItem(`admissions_active_conversation_${clientSessionId}`);
+      const conversation = result.items.find((item) => item.id === savedId) ?? result.items[0];
+      await loadChatConversation(conversation.id, activeToken);
+    }
   }
 
   async function loadChatConversation(id, activeToken = getChatAccessToken()) {
@@ -569,47 +610,31 @@ function App() {
     const result = await api(`/api/chat/conversations/${id}?clientSessionId=${encodeURIComponent(clientSessionId)}`, {
       token: activeToken || undefined,
     });
-    setActiveConversationId(result.id);
+    rememberActiveConversation(result.id);
+    shouldRestoreConversationRef.current = false;
     setChatMessages(result.messages);
     setRagChat(null);
   }
 
+  function rememberActiveConversation(id) {
+    const nextId = id || "";
+    activeConversationIdRef.current = nextId;
+    setActiveConversationId(nextId);
+    const storageKey = `admissions_active_conversation_${clientSessionId}`;
+    if (nextId) {
+      localStorage.setItem(storageKey, nextId);
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }
+
   function startNewChat() {
-    setActiveConversationId("");
+    shouldRestoreConversationRef.current = false;
+    rememberActiveConversation("");
     setChatMessages([]);
     setRagChat(null);
     setRagQuestion("");
     setRagFile(null);
-  }
-
-  async function seedGoldenQuestions() {
-    try {
-      setStatus({ loading: true, message: "Đang tạo bộ câu hỏi chuẩn...", error: "" });
-      await api("/api/admin/evaluation/questions/seed-defaults", {
-        method: "POST",
-        token,
-      });
-      await refreshEvaluation();
-      setStatus({ loading: false, message: "Bộ câu hỏi chuẩn đã sẵn sàng", error: "" });
-    } catch (error) {
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
-  async function runEvaluation() {
-    try {
-      setStatus({ loading: true, message: "Đang chạy đánh giá RAG...", error: "" });
-      const run = await api("/api/admin/evaluation/runs", {
-        method: "POST",
-        token,
-        body: JSON.stringify({ name: `Đánh giá giao diện ${new Date().toLocaleString("vi-VN")}`, topK: 5 }),
-      });
-      setLatestEvaluationRun(run);
-      await refreshEvaluation();
-      setStatus({ loading: false, message: "Đã chạy đánh giá RAG", error: "" });
-    } catch (error) {
-      setStatus({ loading: false, message: "", error: error.message });
-    }
   }
 
   async function uploadDocument(event) {
@@ -625,7 +650,7 @@ function App() {
       form.append("title", documentUpload.title || documentUpload.file.name);
       form.append("documentType", documentUpload.documentType);
       form.append("source", documentUpload.source);
-      form.append("processNow", String(documentUpload.processNow));
+      form.append("processNow", "true");
       form.append("file", documentUpload.file);
       await api("/api/admin/documents", {
         method: "POST",
@@ -636,39 +661,13 @@ function App() {
         title: "",
         documentType: "regulation",
         source: "",
-        processNow: true,
         file: null,
       });
       await refreshDocuments();
-      setStatus({ loading: false, message: "Đã tải tài liệu lên", error: "" });
+      await ensureEvaluationReady(token, true);
+      setStatus({ loading: false, message: "Đã tải, xử lý tài liệu và đánh giá lại RAG", error: "" });
     } catch (error) {
       await refreshDocuments();
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
-  async function processDocument(versionId) {
-    try {
-      setStatus({ loading: true, message: "Đang xử lý tài liệu RAG...", error: "" });
-      await api(`/api/admin/documents/versions/${versionId}/process`, {
-        method: "POST",
-        token,
-      });
-      await refreshDocuments();
-      setStatus({ loading: false, message: "Đã xử lý tài liệu", error: "" });
-    } catch (error) {
-      await refreshDocuments();
-      setStatus({ loading: false, message: "", error: error.message });
-    }
-  }
-
-  async function loadDocumentChunks(versionId) {
-    try {
-      setStatus({ loading: true, message: "Đang tải các đoạn tài liệu...", error: "" });
-      const chunks = await api(`/api/admin/documents/versions/${versionId}/chunks`, { token });
-      setDocumentChunks(chunks);
-      setStatus({ loading: false, message: "Đã tải các đoạn tài liệu", error: "" });
-    } catch (error) {
       setStatus({ loading: false, message: "", error: error.message });
     }
   }
@@ -684,6 +683,7 @@ function App() {
     setRagLoading(true);
     setRagChat(null);
     const chatAccessToken = getChatAccessToken();
+    const conversationId = activeConversationIdRef.current;
     const pendingUserMessage = { id: `pending-${Date.now()}`, role: "user", content: question, sources: [] };
     setChatMessages((current) => [...current, pendingUserMessage]);
     try {
@@ -691,14 +691,14 @@ function App() {
         const form = new FormData();
         form.append("question", question);
         form.append("clientSessionId", clientSessionId);
-        if (activeConversationId) form.append("conversationId", activeConversationId);
+        if (conversationId) form.append("conversationId", conversationId);
         form.append("file", ragFile);
         const detail = await api("/api/chat/conversations/file-question", {
           method: "POST",
           token: chatAccessToken || undefined,
           body: form,
         });
-        setActiveConversationId(detail.id);
+        rememberActiveConversation(detail.id);
         setChatMessages(detail.messages);
         setRagFile(null);
         setRagQuestion("");
@@ -713,12 +713,12 @@ function App() {
         body: JSON.stringify({
           question,
           topK: 5,
-          conversationId: activeConversationId || null,
+          conversationId: conversationId || null,
           clientSessionId,
         }),
       });
       setRagChat(result);
-      setActiveConversationId(result.conversationId ?? "");
+      rememberActiveConversation(result.conversationId ?? "");
       if (result.conversationId) {
         const detail = await api(`/api/chat/conversations/${result.conversationId}?clientSessionId=${encodeURIComponent(clientSessionId)}`, {
           token: chatAccessToken || undefined,
@@ -845,19 +845,26 @@ function App() {
         />
       ) : (
         <>
-      <Header
-        view={view}
-        setView={setView}
-        status={status}
-        adminUser={adminUser}
-        memberUser={memberUser}
-        onOpenAuth={openAuth}
-        onLogout={logout}
-        onMemberLogout={logoutMember}
-      />
+      {view !== "portal" ? (
+        <Header
+          view={view}
+          setView={setView}
+          status={status}
+          adminUser={adminUser}
+          memberUser={memberUser}
+          onOpenAuth={openAuth}
+          onLogout={logout}
+          onMemberLogout={logoutMember}
+        />
+      ) : null}
       {view === "portal" ? (
         <PortalView
           memberUser={memberUser}
+          adminUser={adminUser}
+          setView={setView}
+          onOpenAuth={openAuth}
+          onLogout={logout}
+          onMemberLogout={logoutMember}
           data={data}
           filters={filters}
           setFilters={setFilters}
@@ -921,7 +928,6 @@ function App() {
           dashboard={dashboard}
           aiStatus={aiStatus}
           documents={documents}
-          documentChunks={documentChunks}
           chatFeedbacks={chatFeedbacks}
           chatFeedbackFilter={chatFeedbackFilter}
           handoffTickets={handoffTickets}
@@ -948,10 +954,6 @@ function App() {
           onRefreshEvaluation={() => refreshEvaluation()}
           onReplyHandoffTicket={replyHandoffTicket}
           onUpdateHandoffStatus={updateHandoffStatus}
-          onSeedGoldenQuestions={seedGoldenQuestions}
-          onRunEvaluation={runEvaluation}
-          onProcessDocument={processDocument}
-          onLoadDocumentChunks={loadDocumentChunks}
           onSubmit={submitAdminForm}
         />
       )}
@@ -997,7 +999,7 @@ function AuthLanding({
       setMemberForm((current) => ({
         ...current,
         email: nextRole === "student" ? "BIT240048@st.cmcu.edu.vn" : "phuhuynh@example.com",
-        password: nextRole === "student" ? "Student123456!" : current.password,
+        password: "",
       }));
     }
   }
@@ -1083,9 +1085,12 @@ function Header({ view, setView, status, adminUser, memberUser, onOpenAuth, onLo
 
   return (
     <header className="topbar">
-      <div>
-        <p className="eyebrow">Trường Đại học CMC</p>
-        <h1>{isAdmin ? "Cổng quản trị tuyển sinh" : isMember ? "Hồ sơ tài khoản" : "Trợ lý tuyển sinh Đại học CMC"}</h1>
+      <div className="topbar-brand">
+        <span className="brand-mark" aria-hidden="true">C</span>
+        <div>
+          <p className="eyebrow">Trường Đại học CMC</p>
+          <h1>{isAdmin ? "Cổng quản trị tuyển sinh" : isMember ? "Hồ sơ tài khoản" : "Trợ lý tuyển sinh Đại học CMC"}</h1>
+        </div>
       </div>
       <div className="topbar-actions">
         {isPortal && !memberUser ? (
@@ -1122,6 +1127,11 @@ function Header({ view, setView, status, adminUser, memberUser, onOpenAuth, onLo
 
 function PortalView({
   memberUser,
+  adminUser,
+  setView,
+  onOpenAuth,
+  onLogout,
+  onMemberLogout,
   data,
   filters,
   setFilters,
@@ -1150,46 +1160,47 @@ function PortalView({
 }) {
   const [portalTab, setPortalTab] = useState("chat");
   const portalItems = [
-    { id: "chat", label: "Trợ lý AI", description: "Hỏi đáp tuyển sinh" },
-    { id: "majors", label: "Ngành đào tạo", description: "Tra cứu chương trình" },
-    { id: "compare", label: "So sánh", description: "Đối chiếu học phí" },
-    { id: "faq", label: "FAQ", description: "Câu hỏi thường gặp" },
+    { id: "chat", label: "Trợ lý AI" },
+    { id: "majors", label: "Ngành đào tạo" },
+    { id: "compare", label: "So sánh" },
+    { id: "faq", label: "Câu hỏi thường gặp" },
   ];
 
   return (
-    <div className="portal-shell">
-      <aside className="portal-rail">
-        <div className="portal-rail-head">
-          <p className="eyebrow">CMCU Portal</p>
-          <h2>{memberUser ? "Không gian tư vấn của bạn" : "Cổng tư vấn tuyển sinh"}</h2>
-          <p>{memberUser ? `${memberUser.fullName} đang đăng nhập.` : "Hỏi AI trước, tra cứu chi tiết khi cần."}</p>
-        </div>
-
-        <nav className="portal-service-nav" aria-label="Dịch vụ tư vấn">
+    <div className={`cmc-portal ${portalTab === "chat" ? "is-chat" : "is-service"}`}>
+      <header className="cmc-portal-header">
+        <button className="cmc-wordmark" type="button" onClick={() => setPortalTab("chat")} aria-label="Về Trợ lý tuyển sinh CMCU">
+          <span className="cmc-symbol" aria-hidden="true"><i /><i /><i /></span>
+          <span><strong>CMC</strong><small>UNIVERSITY</small></span>
+        </button>
+        <nav className="cmc-portal-nav" aria-label="Dịch vụ tư vấn">
           {portalItems.map((item) => (
             <button key={item.id} className={portalTab === item.id ? "active" : ""} type="button" onClick={() => setPortalTab(item.id)}>
-              <strong>{item.label}</strong>
-              <span>{item.description}</span>
+              {item.label}
             </button>
           ))}
         </nav>
-
-        <div className="portal-mini-stats">
-          <Metric label="Ngành" value={data.majors.totalItems ?? data.majors.items.length} />
-          <Metric label="Khoa" value={data.faculties.length} />
+        <div className="cmc-portal-account">
+          {memberUser ? (
+            <>
+              <button className="cmc-account-button" type="button" onClick={() => setView("member")}>{memberUser.fullName}</button>
+              <button className="cmc-icon-button" type="button" onClick={onMemberLogout} aria-label="Đăng xuất">↗</button>
+            </>
+          ) : adminUser ? (
+            <>
+              <button className="cmc-account-button" type="button" onClick={() => setView("admin")}>Quản trị</button>
+              <button className="cmc-icon-button" type="button" onClick={onLogout} aria-label="Đăng xuất">↗</button>
+            </>
+          ) : (
+            <>
+              <button className="cmc-login-link" type="button" onClick={() => onOpenAuth("student")}>Đăng nhập</button>
+              <button className="cmc-admin-link" type="button" onClick={() => onOpenAuth("admin")}>Quản trị</button>
+            </>
+          )}
         </div>
-      </aside>
+      </header>
 
-      <section className="portal-workspace">
-        <div className="portal-workspace-head">
-          <div>
-            <p className="eyebrow">{portalTab === "chat" ? "Trợ lý tuyển sinh" : "Dịch vụ tra cứu"}</p>
-            <h2>{portalItems.find((item) => item.id === portalTab)?.label}</h2>
-          </div>
-          <span className="pill">{memberUser ? "Đã đăng nhập" : "Khách vãng lai"}</span>
-        </div>
-
-        {portalTab === "chat" ? (
+      {portalTab === "chat" ? (
           <RagChatPanel
             question={ragQuestion}
             setQuestion={setRagQuestion}
@@ -1205,7 +1216,15 @@ function PortalView({
             onSelectConversation={onSelectConversation}
             onNewConversation={onNewConversation}
           />
-        ) : null}
+      ) : (
+        <section className="cmc-service-workspace">
+          <div className="cmc-service-heading">
+            <div>
+              <p className="eyebrow">Cổng thông tin tuyển sinh</p>
+              <h1>{portalItems.find((item) => item.id === portalTab)?.label}</h1>
+            </div>
+            <span>{data.majors.totalItems ?? data.majors.items.length} ngành · {data.faculties.length} khoa</span>
+          </div>
 
         {portalTab === "majors" ? (
           <MajorsExplorer
@@ -1230,7 +1249,8 @@ function PortalView({
         ) : null}
 
         {portalTab === "faq" ? <FaqPanel faqs={data.faqs} /> : null}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
@@ -1579,6 +1599,9 @@ function RagChatPanel({
   const displayMessages = loading
     ? [...visibleMessages, { id: "thinking", role: "assistant", content: "Đang tìm nguồn phù hợp và tạo câu trả lời...", sources: [] }]
     : visibleMessages;
+  const latestSources = [...visibleMessages]
+    .reverse()
+    .find((message) => message.role === "assistant" && message.sources?.length)?.sources ?? chat?.sources ?? [];
   const feedbackLocked = Boolean(chat?.feedbackSubmitted);
 
   useEffect(() => {
@@ -1607,109 +1630,115 @@ function RagChatPanel({
   }
 
   return (
-    <section className="rag-chat-panel">
-      <div className="section-title">
-        <div>
-          <h2>Trợ lý RAG tuyển sinh CMCU</h2>
-          <p>Trả lời dựa trên PDF, DOCX, ảnh và tài liệu tuyển sinh Đại học CMC đã nạp trong kho quản trị.</p>
+    <section className="rag-chat-panel cmc-chat-workspace">
+      <aside className="chat-history">
+        <div className="chat-history-head">
+          <div>
+            <span className="chat-panel-kicker">HỘI THOẠI</span>
+            <h2>Lịch sử chat</h2>
+          </div>
+          <button className="chat-new-icon" type="button" onClick={onNewConversation} aria-label="Tạo cuộc trò chuyện mới">＋</button>
         </div>
-        {chat?.backend ? <span className="pill">{chat.backend}</span> : null}
-      </div>
-
-      <div className="question-suggestions">
-        {[
-          "Trường thành lập năm nào?",
-          "Hồ sơ xét tuyển trực tuyến gồm những gì?",
-          "Học phí ngành Trí tuệ Nhân tạo là bao nhiêu?",
-          "Đại học CMC có những phương thức xét tuyển nào?",
-        ].map((suggestion) => (
-          <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
-            {suggestion}
-          </button>
-        ))}
-      </div>
-
-      <div className="rag-chat-layout">
-        <aside className="chat-history">
-          <button className="primary-button compact" type="button" onClick={onNewConversation}>
-            Chat mới
-          </button>
-          <div className="chat-history-list">
-            {conversations.items.length ? (
-              conversations.items.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  className={activeConversationId === conversation.id ? "active" : ""}
-                  type="button"
-                  onClick={() => onSelectConversation(conversation.id)}
-                >
+        <button className="chat-new-button" type="button" onClick={onNewConversation}>
+          <span>＋</span> Cuộc trò chuyện mới
+        </button>
+        <div className="chat-history-list">
+          {conversations.items.length ? (
+            conversations.items.map((conversation, index) => (
+              <button
+                key={conversation.id}
+                className={activeConversationId === conversation.id ? "active" : ""}
+                type="button"
+                onClick={() => onSelectConversation(conversation.id)}
+              >
+                <span className="chat-history-icon" aria-hidden="true">{index === 0 ? "✦" : "○"}</span>
+                <span>
                   <strong>{conversation.title}</strong>
                   <small>{conversation.lastMessagePreview || "Chưa có tin nhắn"}</small>
-                </button>
-              ))
-            ) : (
-              <small>Chưa có lịch sử chat.</small>
-            )}
-          </div>
-        </aside>
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="chat-history-empty"><span>◌</span><small>Các cuộc trò chuyện sẽ xuất hiện tại đây.</small></div>
+          )}
+        </div>
+        <div className="chat-history-footer">
+          <span className="cmc-online-dot" />
+          <span>Trợ lý đang trực tuyến</span>
+        </div>
+      </aside>
 
-        <div className="chat-surface">
-          <div className="chat-messages">
-            {displayMessages.length ? (
-              displayMessages.map((message) => (
-                <article key={message.id} className={`chat-message ${message.role}`}>
-                  <strong>{message.role === "user" ? "Bạn" : "Trợ lý"}</strong>
+      <div className={`chat-surface ${displayMessages.length ? "has-messages" : "is-empty"}`}>
+        <div className="chat-messages">
+          {displayMessages.length ? (
+            displayMessages.map((message) => (
+              <article key={message.id} className={`chat-message ${message.role}`}>
+                <div className="chat-message-avatar" aria-hidden="true">{message.role === "user" ? "B" : "✦"}</div>
+                <div>
+                  <strong>{message.role === "user" ? "Bạn" : "CMCU AI"}</strong>
                   <p>{message.content}</p>
-                  {message.role === "assistant" && message.sources?.length ? (
-                    <div className="source-list compact">
-                      <div className="source-list-title">Nguồn tham khảo</div>
-                      {message.sources.slice(0, 3).map((source) => (
-                        <article key={source.id ?? source.pointId}>
-                          <strong>{source.title || "Tài liệu"}</strong>
-                          <span>
-                            Điểm: {Number(source.score).toFixed(3)}
-                            {source.pageNumber ? ` - Trang ${source.pageNumber}` : ""}
-                          </span>
-                          {source.sectionTitle ? <small>{source.sectionTitle}</small> : null}
-                          {source.content ? (
-                            <details>
-                              <summary>Xem trích đoạn kiểm chứng</summary>
-                              <p>{cleanSourceExcerpt(source.content)}</p>
-                            </details>
-                          ) : null}
-                        </article>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
-              ))
-            ) : (
-              <EmptyState text="Đặt câu hỏi đầu tiên để bắt đầu hội thoại." />
-            )}
-          </div>
-
-          <form className="rag-chat-form" onSubmit={onSubmit}>
-            <div className="chat-input-stack">
-              <textarea
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Ví dụ: Hồ sơ xét tuyển gồm những gì?"
-                rows={3}
-              />
-              <label className="chat-file-input">
-                Tệp riêng
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.png,.jpg,.jpeg,.txt,.md"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                />
-                {file ? <span>{file.name}</span> : null}
-              </label>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="cmc-chat-welcome">
+              <div className="cmc-ai-orb" aria-hidden="true"><i /><i /><i /></div>
+              <span className="cmc-welcome-kicker">TRỢ LÝ TUYỂN SINH CMCU</span>
+              <h1>Xin chào! Mình có thể<br />giúp gì cho bạn?</h1>
+              <p>Thông tin tuyển sinh chính xác, dễ hiểu và luôn có nguồn kiểm chứng.</p>
+              <div className="question-suggestions">
+                {[
+                  ["Ngành đào tạo", "Đại học CMC có những ngành nào?", "↗"],
+                  ["Học phí", "Học phí ngành Trí tuệ Nhân tạo là bao nhiêu?", "₫"],
+                  ["Xét tuyển", "Có những phương thức xét tuyển nào?", "✓"],
+                  ["Hồ sơ", "Hồ sơ xét tuyển trực tuyến gồm những gì?", "▤"],
+                ].map(([label, suggestion, icon]) => (
+                  <button key={suggestion} type="button" onClick={() => setQuestion(suggestion)}>
+                    <span className="suggestion-icon">{icon}</span>
+                    <span><small>{label}</small><strong>{suggestion}</strong></span>
+                    <b aria-hidden="true">→</b>
+                  </button>
+                ))}
+              </div>
             </div>
-            <button className="primary-button" type="submit" disabled={loading}>
-              {loading ? "Đang hỏi..." : file ? "Hỏi theo tệp" : "Hỏi tài liệu"}
+          )}
+        </div>
+
+        <div className="cmc-composer-wrap">
+          <form className="rag-chat-form" onSubmit={onSubmit}>
+            <label className="chat-file-input" title="Đính kèm tệp riêng">
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                <path d="M9.5 17.5 16.8 10.2a3.2 3.2 0 0 0-4.5-4.5L4.7 13.3a5 5 0 0 0 7.1 7.1l7.6-7.6" />
+              </svg>
+              <span className="sr-only">Đính kèm tệp riêng</span>
+              <input
+                hidden
+                type="file"
+                accept=".pdf,.docx,.png,.jpg,.jpeg,.txt,.md"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              placeholder="Nhập câu hỏi tuyển sinh của bạn..."
+              rows={1}
+            />
+            <button className="chat-send-button" type="submit" disabled={loading || !question.trim()} aria-label="Gửi câu hỏi">
+              {loading ? <span className="chat-loader" /> : "↑"}
             </button>
           </form>
+          <div className="cmc-composer-meta">
+            <span>{file ? `Tệp đã chọn: ${file.name}` : "Có thể đính kèm PDF, DOCX hoặc hình ảnh"}</span>
+            <span>Enter để gửi · Shift + Enter để xuống dòng</span>
+          </div>
+        </div>
           {chat?.error ? <p className="rag-error">{chat.error}</p> : null}
           {chat?.answer ? (
             <div className="feedback-actions" aria-label="Đánh giá câu trả lời">
@@ -1765,8 +1794,47 @@ function RagChatPanel({
           {chat?.handoffTicketId ? (
             <p className="handoff-notice">Câu hỏi đã được chuyển cho tư vấn viên. Mã phiếu: {chat.handoffTicketId.slice(0, 8)}</p>
           ) : null}
-        </div>
       </div>
+
+      <aside className="chat-sources" aria-label="Nguồn tham khảo">
+        <div className="chat-sources-head">
+          <div>
+            <span className="chat-panel-kicker">KIỂM CHỨNG</span>
+            <h2>Nguồn tham khảo</h2>
+          </div>
+          <span className="source-count">{latestSources.length}</span>
+        </div>
+        <p className="chat-sources-intro">Tài liệu được sử dụng để xây dựng câu trả lời gần nhất.</p>
+        <div className="source-list">
+          {latestSources.length ? latestSources.slice(0, 5).map((source, index) => (
+            <article key={source.id ?? source.pointId ?? index}>
+              <div className="source-index">{String(index + 1).padStart(2, "0")}</div>
+              <div>
+                <span className="source-type">TÀI LIỆU CMCU</span>
+                <strong>{source.title || "Tài liệu tuyển sinh"}</strong>
+                <span>
+                  {source.pageNumber ? `Trang ${source.pageNumber}` : "Tài liệu nội bộ"}
+                  {source.score != null && Number.isFinite(Number(source.score)) ? ` · Độ khớp ${Math.round(Number(source.score) * 100)}%` : ""}
+                </span>
+                {source.sectionTitle ? <small>{source.sectionTitle}</small> : null}
+                {source.content ? (
+                  <details>
+                    <summary>Xem trích đoạn <b>↗</b></summary>
+                    <p>{cleanSourceExcerpt(source.content)}</p>
+                  </details>
+                ) : null}
+              </div>
+            </article>
+          )) : (
+            <div className="source-empty">
+              <div aria-hidden="true">⌘</div>
+              <strong>Chưa có nguồn</strong>
+              <p>Nguồn tham khảo sẽ xuất hiện sau khi trợ lý trả lời câu hỏi của bạn.</p>
+            </div>
+          )}
+        </div>
+        <div className="source-trust-note"><span>✓</span><p><strong>Nguồn tin cậy</strong><small>Dữ liệu chính thức từ Đại học CMC</small></p></div>
+      </aside>
     </section>
   );
 }
@@ -1795,7 +1863,6 @@ function AdminView({
   dashboard,
   aiStatus,
   documents,
-  documentChunks,
   chatFeedbacks,
   chatFeedbackFilter,
   handoffTickets,
@@ -1819,20 +1886,17 @@ function AdminView({
   onRefreshEvaluation,
   onReplyHandoffTicket,
   onUpdateHandoffStatus,
-  onSeedGoldenQuestions,
-  onRunEvaluation,
-  onProcessDocument,
-  onLoadDocumentChunks,
   onSubmit,
 }) {
   const [adminTab, setAdminTab] = useState("overview");
   const adminTabs = [
-    ["overview", "Tổng quan"],
-    ["accounts", "Tài khoản"],
-    ["rag", "RAG & hỗ trợ"],
-    ["evaluation", "Đánh giá"],
-    ["admissions", "Dữ liệu tuyển sinh"],
+    ["overview", "Tổng quan", "Tình hình hệ thống"],
+    ["accounts", "Tài khoản", "Người dùng & phân quyền"],
+    ["rag", "RAG & hỗ trợ", "Tài liệu & tư vấn"],
+    ["evaluation", "Đánh giá", "Chất lượng truy xuất"],
+    ["admissions", "Dữ liệu tuyển sinh", "Thông tin đào tạo"],
   ];
+  const activeAdminTab = adminTabs.find(([id]) => id === adminTab) ?? adminTabs[0];
 
   if (!token || !adminUser) {
     return (
@@ -1862,12 +1926,25 @@ function AdminView({
   return (
     <div className="admin-shell">
       <nav className="admin-tabs" aria-label="Khu vực quản trị">
-        {adminTabs.map(([id, label]) => (
-          <button key={id} className={adminTab === id ? "active" : ""} type="button" onClick={() => setAdminTab(id)}>
-            {label}
+        <div className="admin-nav-brand">
+          <span className="brand-mark" aria-hidden="true">C</span>
+          <div><strong>CMC Admin</strong><small>Tuyển sinh 2026</small></div>
+        </div>
+        <span className="admin-nav-label">Không gian quản trị</span>
+        {adminTabs.map(([id, label, description], index) => (
+          <button key={id} aria-label={label} className={adminTab === id ? "active" : ""} type="button" onClick={() => setAdminTab(id)}>
+            <span className="admin-tab-index">{String(index + 1).padStart(2, "0")}</span>
+            <span><strong>{label}</strong><small>{description}</small></span>
           </button>
         ))}
+        <div className="admin-nav-footer"><span className="status-dot" />Hệ thống đang hoạt động</div>
       </nav>
+
+      <section className="admin-content">
+        <header className="admin-page-header">
+          <div><p className="eyebrow">Quản trị tuyển sinh</p><h2>{activeAdminTab[1]}</h2><p>{activeAdminTab[2]}</p></div>
+          <span className="admin-date">Năm tuyển sinh 2026</span>
+        </header>
 
       {adminTab === "overview" ? (
         <div className="admin-grid">
@@ -1897,14 +1974,11 @@ function AdminView({
         <div className="admin-grid">
       <DocumentManager
         documents={documents}
-        chunks={documentChunks}
         status={status}
         upload={documentUpload}
         setUpload={setDocumentUpload}
         onUpload={onUploadDocument}
         onRefresh={onRefreshDocuments}
-        onProcess={onProcessDocument}
-        onLoadChunks={onLoadDocumentChunks}
       />
 
       <ChatFeedbackManager
@@ -1934,8 +2008,6 @@ function AdminView({
         latestRun={latestEvaluationRun}
         status={status}
         onRefresh={onRefreshEvaluation}
-        onSeed={onSeedGoldenQuestions}
-        onRun={onRunEvaluation}
       />
         </div>
       ) : null}
@@ -2025,6 +2097,7 @@ function AdminView({
       </AdminForm>
         </div>
       ) : null}
+      </section>
     </div>
   );
 }
@@ -2053,11 +2126,9 @@ function UserManager({ users, filters, setFilters, onRefresh, onUpdateStatus }) 
         <label>
           Vai trò
           <select value={filters.role} onChange={(event) => updateFilter("role", event.target.value)}>
-            <option value="">Tất cả</option>
+            <option value="">Tất cả sinh viên và phụ huynh</option>
             <option value="student">Sinh viên</option>
             <option value="parent">Phụ huynh</option>
-            <option value="staff">Nhân viên</option>
-            <option value="admin">Quản trị viên</option>
           </select>
         </label>
         <label>
@@ -2138,7 +2209,7 @@ function UserManager({ users, filters, setFilters, onRefresh, onUpdateStatus }) 
   );
 }
 
-function DocumentManager({ documents, chunks, status, upload, setUpload, onUpload, onRefresh, onProcess, onLoadChunks }) {
+function DocumentManager({ documents, status, upload, setUpload, onUpload, onRefresh }) {
   const statusMessage = status?.message ?? "";
   const relevantStatus = Boolean(status?.error || /tài liệu|đoạn|RAG/i.test(statusMessage));
   const busy = Boolean(status?.loading && relevantStatus);
@@ -2176,14 +2247,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
             onChange={(event) => setUpload({ ...upload, file: event.target.files?.[0] ?? null })}
           />
         </label>
-        <label className="inline-check">
-          <input
-            type="checkbox"
-            checked={upload.processNow}
-            onChange={(event) => setUpload({ ...upload, processNow: event.target.checked })}
-          />
-          Xử lý và chia đoạn ngay
-        </label>
         <button className="primary-button compact" type="submit" disabled={busy}>
           {busy ? "Đang xử lý..." : "Tải lên"}
         </button>
@@ -2197,7 +2260,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
               <th>Loại</th>
               <th>Trạng thái</th>
               <th>Đoạn</th>
-              <th>Lệnh</th>
             </tr>
           </thead>
           <tbody>
@@ -2212,20 +2274,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
                   <td>{documentTypeLabel(document.documentType)}</td>
                   <td>{statusLabel(version?.processingStatus || document.status)}</td>
                   <td>{version?.chunkCount ?? 0}</td>
-                  <td>
-                    <div className="row-actions">
-                      {version ? (
-                        <>
-                          <button type="button" className="ghost-button" onClick={() => onProcess(version.id)} disabled={busy}>
-                            Xử lý
-                          </button>
-                          <button type="button" className="ghost-button" onClick={() => onLoadChunks(version.id)} disabled={busy}>
-                            Đoạn
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
                 </tr>
               );
             })}
@@ -2233,17 +2281,6 @@ function DocumentManager({ documents, chunks, status, upload, setUpload, onUploa
         </table>
       </div>
 
-      {chunks.length ? (
-        <div className="chunk-preview">
-          <h3>Xem trước đoạn tài liệu</h3>
-          {chunks.slice(0, 4).map((chunk) => (
-            <article key={chunk.id}>
-              <strong>#{chunk.chunkIndex + 1} {chunk.sectionTitle ? `- ${chunk.sectionTitle}` : ""}</strong>
-              <p>{chunk.content}</p>
-            </article>
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -2410,22 +2447,22 @@ function AdminDashboardPanel({ token, dashboard, aiStatus, onRefresh }) {
       </div>
       {dashboard ? (
         <div className="dashboard-metrics">
-          <Metric label="Người dùng" value={dashboard.totalUsers} />
-          <Metric label="Tài liệu" value={dashboard.totalDocuments} />
-          <Metric label="Tài liệu xong" value={dashboard.completedDocumentVersions} />
-          <Metric label="Cuộc chat" value={dashboard.totalConversations} />
-          <Metric label="Tin nhắn" value={dashboard.totalChatMessages} />
-          <Metric label="Đánh giá âm" value={dashboard.negativeFeedback} />
-          <Metric label="Phiếu mở" value={dashboard.openHandoffTickets} />
-          <Metric label="Đã xử lý" value={dashboard.resolvedHandoffTickets} />
-          <Metric label="Lượt đánh giá" value={dashboard.evaluationRuns} />
-          <Metric label="Hit@K" value={percent(dashboard.latestEvaluationHitRateAtK)} />
-          <Metric label="Từ khóa" value={percent(dashboard.latestEvaluationKeywordHitRate)} />
-          <Metric label="Độ trễ" value={`${Math.round(dashboard.averageChatLatencyMs)}ms`} />
-          <Metric label="Dịch vụ AI" value={statusLabel(visibleAiStatus?.aiServiceStatus)} />
-          <Metric label="Vector" value={visibleAiStatus?.vectorBackend ?? "-"} />
-          <Metric label="Qdrant" value={visibleAiStatus?.qdrantAvailable ? "bật" : "tắt"} />
-          <Metric label="LLM" value={visibleAiStatus?.llmConfigured ? "sẵn sàng" : "tắt"} />
+          <Metric label="Người dùng" value={dashboard.totalUsers} help="Tổng số tài khoản đang có trong hệ thống." />
+          <Metric label="Tài liệu" value={dashboard.totalDocuments} help="Số tài liệu đã được đưa vào khu vực kiến thức của AI." />
+          <Metric label="Tài liệu xong" value={dashboard.completedDocumentVersions} help="Số phiên bản tài liệu đã đọc và xử lý thành công, sẵn sàng để AI tra cứu." />
+          <Metric label="Cuộc chat" value={dashboard.totalConversations} help="Tổng số phiên trò chuyện đã được tạo." />
+          <Metric label="Tin nhắn" value={dashboard.totalChatMessages} help="Tổng số câu hỏi và câu trả lời trong tất cả cuộc trò chuyện." />
+          <Metric label="Đánh giá âm" value={dashboard.negativeFeedback} help="Số câu trả lời bị người dùng đánh giá chưa hữu ích (nút không thích)." />
+          <Metric label="Phiếu mở" value={dashboard.openHandoffTickets} help="Số yêu cầu đang chờ quản trị viên hoặc tư vấn viên tiếp nhận và trả lời." />
+          <Metric label="Đã xử lý" value={dashboard.resolvedHandoffTickets} help="Số yêu cầu hỗ trợ đã được trả lời và đóng." />
+          <Metric label="Lượt đánh giá" value={dashboard.evaluationRuns} help="Số lần hệ thống chạy bộ câu hỏi chuẩn để kiểm tra khả năng tìm đúng tài liệu." />
+          <Metric label="Hit@K" value={percent(dashboard.latestEvaluationHitRateAtK)} help="Tỷ lệ câu hỏi mà nguồn đúng xuất hiện trong K kết quả đầu tiên. Càng gần 100% càng tốt." />
+          <Metric label="Từ khóa" value={percent(dashboard.latestEvaluationKeywordHitRate)} help="Tỷ lệ từ khóa mong đợi được tìm thấy trong nguồn mà AI truy xuất." />
+          <Metric label="Độ trễ" value={`${Math.round(dashboard.averageChatLatencyMs)}ms`} help="Thời gian trung bình từ lúc gửi câu hỏi đến khi hệ thống tạo xong câu trả lời. 1.000 ms bằng 1 giây." />
+          <Metric label="Dịch vụ AI" value={statusLabel(visibleAiStatus?.aiServiceStatus)} help="Tình trạng hoạt động của dịch vụ đọc tài liệu và tìm kiếm kiến thức." />
+          <Metric label="Vector" value={visibleAiStatus?.vectorBackend ?? "-"} help="Công nghệ biến nội dung thành dãy số để tìm những đoạn có ý nghĩa gần với câu hỏi." />
+          <Metric label="Qdrant" value={visibleAiStatus?.qdrantAvailable ? "bật" : "tắt"} help="Kho dữ liệu vector dùng để lưu và tìm nhanh các đoạn tài liệu liên quan." />
+          <Metric label="LLM" value={visibleAiStatus?.llmConfigured ? "sẵn sàng" : "tắt"} help="Mô hình ngôn ngữ lớn dùng các nguồn đã tìm được để diễn đạt câu trả lời tự nhiên, dễ đọc." />
         </div>
       ) : (
         <EmptyState text="Đang chờ dữ liệu bảng điều khiển." />
@@ -2454,7 +2491,7 @@ function normalizeAiStatus(value) {
     : null;
 }
 
-function EvaluationManager({ questions, runs, latestRun, status, onRefresh, onSeed, onRun }) {
+function EvaluationManager({ questions, runs, latestRun, status, onRefresh }) {
   const statusMessage = status?.message ?? "";
   const relevantStatus = Boolean(status?.error || /đánh giá|câu hỏi chuẩn/i.test(statusMessage));
   const busy = Boolean(status?.loading && relevantStatus);
@@ -2470,12 +2507,6 @@ function EvaluationManager({ questions, runs, latestRun, status, onRefresh, onSe
         <div className="row-actions">
           <button className="ghost-button" type="button" onClick={onRefresh} disabled={busy}>
             Tải lại
-          </button>
-          <button className="ghost-button" type="button" onClick={onSeed} disabled={busy}>
-            Tạo câu hỏi chuẩn
-          </button>
-          <button className="primary-button compact" type="button" onClick={onRun} disabled={busy || questions.length === 0}>
-            {busy ? "Đang chạy..." : "Chạy đánh giá"}
           </button>
         </div>
       </div>
@@ -2510,7 +2541,7 @@ function EvaluationManager({ questions, runs, latestRun, status, onRefresh, onSe
           </div>
         </>
       ) : latestRun ? (
-        <EmptyState text={`Lần chạy gần nhất đang ở trạng thái ${evaluationStatusLabel(latestRun.status)} và chưa có kết quả chi tiết. Bấm “Chạy đánh giá” để tạo lần chạy mới.`} />
+        <EmptyState text={`Lần chạy gần nhất đang ở trạng thái ${evaluationStatusLabel(latestRun.status)} và chưa có kết quả chi tiết. Hệ thống sẽ tự động cập nhật sau khi xử lý tài liệu.`} />
       ) : (
         <EmptyState text="Chưa có lần chạy đánh giá nào." />
       )}
@@ -2570,11 +2601,18 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-function Metric({ label, value }) {
+function Metric({ label, value, help }) {
+  const helpId = help ? `metric-help-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : undefined;
   return (
     <div className="metric">
+      {help ? (
+        <span className="metric-help-wrap">
+          <button className="metric-help-button" type="button" aria-label={`Giải thích ${label}`} aria-describedby={helpId}>?</button>
+          <span className="metric-help-popover" id={helpId} role="tooltip">{help}</span>
+        </span>
+      ) : null}
       <strong>{value}</strong>
-      <span>{label}</span>
+      <span className="metric-label">{label}</span>
     </div>
   );
 }

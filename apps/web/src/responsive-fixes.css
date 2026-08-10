@@ -1,0 +1,201 @@
+/* Mobile layouts should expose every action without hidden horizontal scrolling. */
+@media (max-width: 820px) {
+  .portal-service-nav,
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .portal-service-nav button,
+  .admin-tabs button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .portal-service-nav button.active,
+  .admin-tabs button.active {
+    box-shadow: inset 4px 0 0 var(--primary);
+  }
+
+  .question-suggestions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .question-suggestions button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .chat-history-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .chat-history-list button {
+    min-width: 0;
+  }
+}
+
+/* Replace inconsistent browser file controls with one Vietnamese action. */
+.chat-file-input,
+.document-upload label:has(input[type="file"]) {
+  position: relative;
+}
+
+.chat-file-input input[type="file"],
+.document-upload input[type="file"] {
+  position: absolute;
+  width: 1px;
+  min-height: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-file-input::after,
+.document-upload label:has(input[type="file"])::after {
+  content: "Chọn tệp";
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.chat-file-input:hover::after,
+.document-upload label:has(input[type="file"]):hover::after {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+@media (max-width: 560px) {
+  .question-suggestions {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-service-nav,
+  .admin-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-service-nav button,
+  .admin-tabs button {
+    min-height: 52px;
+  }
+
+  .question-suggestions {
+    flex-wrap: wrap;
+    padding-bottom: 0;
+  }
+
+  .question-suggestions button {
+    min-width: 0;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .topbar-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Administrative tables become readable cards instead of hidden horizontal rows. */
+  .user-table,
+  .document-table {
+    overflow: visible;
+  }
+
+  .user-table table,
+  .user-table tbody,
+  .user-table tr,
+  .user-table td,
+  .document-table table,
+  .document-table tbody,
+  .document-table tr,
+  .document-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .user-table thead,
+  .document-table thead {
+    display: none;
+  }
+
+  .user-table tr,
+  .document-table tr {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+
+  .user-table td,
+  .document-table td {
+    display: grid;
+    grid-template-columns: minmax(88px, 36%) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 7px 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .user-table td::before,
+  .document-table td::before {
+    color: var(--muted);
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+
+  .user-table td:nth-child(1)::before { content: "Người dùng"; }
+  .user-table td:nth-child(2)::before { content: "Vai trò"; }
+  .user-table td:nth-child(3)::before { content: "Trạng thái"; }
+  .user-table td:nth-child(4)::before { content: "Ngày tạo"; }
+  .user-table td:nth-child(5)::before { content: "Thao tác"; }
+
+  .document-table td:nth-child(1)::before { content: "Tài liệu"; }
+  .document-table td:nth-child(2)::before { content: "Loại"; }
+  .document-table td:nth-child(3)::before { content: "Trạng thái"; }
+  .document-table td:nth-child(4)::before { content: "Số đoạn"; }
+  .document-table td:nth-child(5)::before { content: "Thao tác"; }
+
+  .user-table .row-actions,
+  .document-table .row-actions {
+    width: 100%;
+  }
+
+  .user-table .row-actions button,
+  .document-table .row-actions button {
+    flex: 1 1 120px;
+  }
+}
+
+@media (max-width: 380px) {
+  .portal-service-nav,
+  .admin-tabs {
+    grid-template-columns: 1fr;
+  }
+}

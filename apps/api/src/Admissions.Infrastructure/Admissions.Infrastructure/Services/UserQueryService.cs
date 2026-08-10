@@ -20,6 +20,8 @@ public sealed class UserQueryService(AdmissionsDbContext dbContext) : IUserQuery
         var query = dbContext.Users
             .Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
+            .Where(x => x.UserRoles.Any(userRole =>
+                userRole.Role.Code == "student" || userRole.Role.Code == "parent"))
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(keyword))

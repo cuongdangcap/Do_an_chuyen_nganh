@@ -1,0 +1,4 @@
+/* Reserve the help button's corner so long status values never overlap it. */
+.metric:has(.metric-help-wrap) strong {
+  padding-right: 30px;
+}

@@ -43,6 +43,15 @@ public sealed record CreateStaffRequest(
     IReadOnlyCollection<string> Roles,
     string TemporaryPassword);
 
+public sealed record CreateManagedAccountRequest(
+    string Email,
+    string FullName,
+    string? Phone,
+    string Role,
+    string TemporaryPassword,
+    string? Department = null,
+    string? Position = null);
+
 public sealed record UpdateUserStatusRequest(
     string Status,
     string? Reason);

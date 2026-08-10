@@ -7,7 +7,9 @@ namespace Admissions.Api.Controllers;
 
 [ApiController]
 [Route("api/rag")]
-public sealed class RagController(IRagService ragService) : ControllerBase
+public sealed class RagController(
+    IRagService ragService,
+    ConversationMemoryContext memoryContext) : ControllerBase
 {
     [HttpPost("search")]
     [AllowAnonymous]
@@ -21,7 +23,11 @@ public sealed class RagController(IRagService ragService) : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Chat(RagChatRequest request, CancellationToken cancellationToken)
     {
-        var result = await ragService.ChatAsync(request, User.GetUserId(), cancellationToken);
+        memoryContext.ConversationId = request.ConversationId;
+        memoryContext.ClientSessionId = string.IsNullOrWhiteSpace(request.ClientSessionId) ? null : request.ClientSessionId.Trim();
+        memoryContext.UserId = User.GetUserId();
+
+        var result = await ragService.ChatAsync(request, memoryContext.UserId, cancellationToken);
         return Ok(ApiResponse<RagChatResponse>.Ok(result, "OK", HttpContext.TraceIdentifier));
     }
 }

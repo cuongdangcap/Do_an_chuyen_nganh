@@ -393,8 +393,8 @@ public sealed class EvaluationService(
             NewQuestion(
                 "CMCU_CHITIEU_2026",
                 "Chỉ tiêu tuyển sinh Đại học CMC năm 2026 là bao nhiêu?",
-                "Năm 2026, Đại học CMC công bố 1.800 chỉ tiêu tại Hà Nội và 800 chỉ tiêu tại TP.HCM, tổng 2.600 chỉ tiêu.",
-                ["1.800", "800", "2.600", "Hà Nội", "TP.HCM"],
+                "Bảng ngành/chương trình tuyển sinh 2026 ghi tổng chỉ tiêu 2.315; một ô tổng quan trên cùng trang ghi 2.300 nên cần nêu rõ sự không thống nhất và hướng dẫn xác nhận với Phòng Tuyển sinh.",
+                ["2.315", "2.300", "Phòng Tuyển sinh"],
                 "Nguồn tuyển sinh CMCU 2026",
                 "admission_notice",
                 "cmcu_quota"),
@@ -406,6 +406,38 @@ public sealed class EvaluationService(
                 "Nguồn tuyển sinh CMCU 2026",
                 "admission_notice",
                 "cmcu_cutoff"),
+            NewQuestion(
+                "CMCU_HOCPHI_TYPO_2026",
+                "hoc fi nghanh tri tue nhan tao bn vay",
+                "Ngành Trí tuệ Nhân tạo thuộc nhóm công nghệ; học phí được công bố theo từng giai đoạn học kỳ.",
+                ["Trí tuệ Nhân tạo", "14.742.000", "18.018.000", "21.840.000"],
+                "Nguồn tuyển sinh CMCU 2026",
+                "admission_notice",
+                "cmcu_typo"),
+            NewQuestion(
+                "CMCU_HOCBONG_2026",
+                "Các mức học bổng Đại học CMC năm 2026 là gì?",
+                "Quỹ học bổng 96 tỷ đồng gồm CMC Khai phóng 100%, CMC Sáng tạo 70%, CMC Tiên phong 50% và CMC Kiến tạo 30% học phí toàn khóa theo điều kiện từng nhóm.",
+                ["96 tỷ", "100%", "70%", "50%", "30%"],
+                "Nguồn tuyển sinh CMCU 2026",
+                "admission_notice",
+                "cmcu_scholarship"),
+            NewQuestion(
+                "CMCU_LIENHE_2026",
+                "Liên hệ tuyển sinh Trường Đại học CMC bằng cách nào?",
+                "Phòng Tuyển sinh sử dụng số 024 7102 9999 và email tuyensinh@cmcu.edu.vn.",
+                ["024 7102 9999", "tuyensinh@cmcu.edu.vn"],
+                "Nguồn tuyển sinh CMCU 2026",
+                "admission_notice",
+                "cmcu_contact"),
+            NewQuestion(
+                "CMCU_CMCTEST_2026",
+                "Bài thi CMC-TEST năm 2026 gồm những phần nào?",
+                "Bài thi trắc nghiệm trên máy tính gồm Toán học, Tiếng Anh và Tư duy logic.",
+                ["Toán học", "Tiếng Anh", "Tư duy logic"],
+                "Nguồn tuyển sinh CMCU 2026",
+                "admission_notice",
+                "cmcu_test"),
         ];
     }
 
