@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddDbContext<AdmissionsDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddScoped<ConversationMemoryContext>();
         services.AddHttpClient<DocumentIngestionClient>((provider, client) =>
         {
             var options = provider.GetRequiredService<IOptions<AiServiceOptions>>().Value;
