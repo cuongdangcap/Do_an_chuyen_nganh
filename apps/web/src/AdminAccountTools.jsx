@@ -143,20 +143,20 @@ export default function AdminAccountTools() {
           <label>Họ tên<input required value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>
           <label>Email<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
           <label>Số điện thoại<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
-          <label>Vai trò<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>{roleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label>Loại tài khoản<select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })}>{roleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label>Mật khẩu tạm<input required minLength={8} type="password" value={form.temporaryPassword} onChange={(event) => setForm({ ...form, temporaryPassword: event.target.value })} /></label>
           <button className="primary-button compact" type="submit" disabled={busy}>{busy ? "Đang lưu..." : "Tạo tài khoản"}</button>
         </form>
 
         <form onSubmit={changeRole}>
           <h4>Đổi vai trò tài khoản</h4>
-          <label>Tài khoản<select value={selectedUserId} onChange={(event) => {
+          <label>Tài khoản cần đổi<select value={selectedUserId} onChange={(event) => {
             const id = event.target.value;
             setSelectedUserId(id);
             const user = users.find((item) => item.id === id);
             setSelectedRole(user?.roles?.[0] ?? "student");
           }}>{users.map((user) => <option key={user.id} value={user.id}>{user.fullName} — {user.email}</option>)}</select></label>
-          <label>Vai trò mới<select value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{roleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label>Quyền mới<select value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>{roleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           {selectedUser ? <p className="managed-current-role">Hiện tại: {selectedUser.roles?.map(labelRole).join(", ") || "Chưa có vai trò"}</p> : null}
           <p className="managed-account-note">Hệ thống không cho tự hạ quyền tài khoản đang đăng nhập và không cho hạ quản trị viên cuối cùng.</p>
           <button className="primary-button compact" type="submit" disabled={busy || !selectedUserId}>{busy ? "Đang lưu..." : "Đổi vai trò"}</button>
