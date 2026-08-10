@@ -1,0 +1,130 @@
+:root {
+  --primary: #0057b8;
+  --primary-strong: #003f8f;
+  --primary-soft: #edf5ff;
+  --accent: #2f80ed;
+}
+
+/* CMC University blue identity override. Kept in one final stylesheet so legacy
+   red tokens cannot leak through older component styles. */
+.eyebrow,
+.source-kicker,
+.chat-panel-kicker,
+.source-index,
+.source-list summary,
+.admin-tabs button.active .admin-tab-index {
+  color: var(--primary);
+}
+
+.primary-button,
+.primary,
+button.primary,
+.chat-send-button,
+.brand-mark {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.primary-button:hover,
+.primary:hover,
+button.primary:hover,
+.chat-send-button:hover:not(:disabled) {
+  background: var(--primary-strong);
+}
+
+.account-chip,
+.pill,
+.tag,
+.source-count,
+.admin-tabs button.active,
+.portal-service-nav button.active,
+.chat-history-list button.active {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.portal-service-nav button.active,
+.admin-tabs button.active,
+.chat-history-list button.active {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 87, 184, .1);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline-color: rgba(0, 87, 184, .28);
+}
+
+.brand-mark {
+  background: linear-gradient(145deg, #0069d9, #00479d);
+  box-shadow: 0 8px 20px rgba(0, 87, 184, .2);
+  font-size: 0;
+}
+
+.brand-mark::after {
+  content: "CMC";
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+.brand-mark.small::after { font-size: .62rem; }
+
+.cmc-wordmark,
+.cmc-account-button,
+.cmc-login-link,
+.cmc-admin-link {
+  color: #00479d;
+}
+
+.cmc-symbol i,
+.cmc-ai-orb i {
+  background: #0057b8;
+}
+
+.cmc-online-dot,
+.status-dot {
+  box-shadow: 0 0 0 4px rgba(0, 87, 184, .1);
+}
+
+.auth-brand::before {
+  content: "CMC  UNIVERSITY";
+  display: inline-flex;
+  margin-bottom: 22px;
+  padding: 9px 13px;
+  border: 1px solid rgba(0, 87, 184, .18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .78);
+  color: #0057b8;
+  font-size: .82rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.question-suggestions button:hover {
+  border-color: #a9caee;
+  background: var(--primary-soft);
+}
+
+tbody tr:hover { background: #f5f9ff; }
+
+.chat-message.user {
+  background: linear-gradient(145deg, #0064cf, #004da8);
+  box-shadow: 0 8px 22px rgba(0, 87, 184, .16);
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-brand::before {
+    background: rgba(255, 255, 255, .92);
+  }
+}
