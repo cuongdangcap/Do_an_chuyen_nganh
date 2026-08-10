@@ -123,6 +123,84 @@ tbody tr:hover { background: #f5f9ff; }
   box-shadow: 0 8px 22px rgba(0, 87, 184, .16);
 }
 
+.managed-account-tools {
+  order: -1;
+  margin: 0 0 22px;
+  padding: 18px;
+  border: 1px solid #dbe8f6;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f7fbff 0%, #fff 100%);
+}
+
+.managed-account-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.managed-account-head span {
+  color: var(--primary);
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.managed-account-head h3 { margin: 4px 0 3px; }
+.managed-account-head p { margin: 0; color: var(--muted); font-size: .82rem; }
+
+.managed-account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.managed-account-grid form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+
+.managed-account-grid h4 {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+}
+
+.managed-account-grid label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.managed-account-grid input,
+.managed-account-grid select { width: 100%; min-height: 40px; }
+.managed-account-grid button { justify-self: start; }
+.managed-current-role,
+.managed-account-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .76rem; }
+.managed-account-message { margin: 12px 0 0; padding: 9px 11px; border-radius: 9px; font-size: .8rem; }
+.managed-account-message.ok { background: #edf9f4; color: #116c50; }
+.managed-account-message.error { background: #fff1f1; color: #a62323; }
+
+@media (max-width: 900px) {
+  .managed-account-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .managed-account-tools { padding: 12px; }
+  .managed-account-head { display: grid; }
+  .managed-account-grid form { grid-template-columns: 1fr; }
+  .managed-account-grid h4,
+  .managed-current-role,
+  .managed-account-note { grid-column: auto; }
+}
+
 @media (prefers-color-scheme: dark) {
   .auth-brand::before {
     background: rgba(255, 255, 255, .92);
