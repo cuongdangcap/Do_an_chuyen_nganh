@@ -27,6 +27,21 @@ public sealed class AdminUsersController(
         return Ok(ApiResponse<UserListResponse>.Ok(users, "OK", HttpContext.TraceIdentifier));
     }
 
+    [HttpPost]
+    public async Task<IActionResult> CreateManagedAccount(CreateManagedAccountRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var actorId = User.GetUserId() ?? throw new InvalidOperationException("Authenticated user id is missing.");
+            var user = await authService.CreateManagedAccountAsync(request, actorId, cancellationToken);
+            return Ok(ApiResponse<UserSummary>.Ok(user, "Tài khoản đã được tạo.", HttpContext.TraceIdentifier));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", ex.Message, HttpContext.TraceIdentifier));
+        }
+    }
+
     [HttpPost("staff")]
     public async Task<IActionResult> CreateStaff(CreateStaffRequest request, CancellationToken cancellationToken)
     {
@@ -66,7 +81,7 @@ public sealed class AdminUsersController(
     {
         try
         {
-            var actorId = User.GetUserId();
+            var actorId = User.GetUserId() ?? throw new InvalidOperationException("Authenticated user id is missing.");
             var user = await authService.UpdateRolesAsync(id, request, actorId, cancellationToken);
             return Ok(ApiResponse<UserSummary>.Ok(user, "User roles updated.", HttpContext.TraceIdentifier));
         }
